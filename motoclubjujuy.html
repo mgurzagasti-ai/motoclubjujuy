@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Moto Club Jujuy | 6 Motoencuentro Internacional</title>
+    <style>
+        :root {
+            --bg: #050505;
+            --panel: rgba(10, 10, 10, 0.82);
+            --panel-soft: rgba(255, 255, 255, 0.06);
+            --text: #f5f1e8;
+            --muted: #cbc2b3;
+            --line: rgba(255, 214, 102, 0.22);
+            --gold: #f4c76a;
+            --gold-strong: #ffcf40;
+            --blue: #2ca6e0;
+            --shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+            background:
+                radial-gradient(circle at top, rgba(244, 199, 106, 0.14), transparent 30%),
+                linear-gradient(180deg, rgba(8, 19, 34, 0.95), var(--bg) 34%, #020202 100%);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background:
+                linear-gradient(transparent 96%, rgba(255, 255, 255, 0.02) 100%),
+                radial-gradient(circle at 20% 10%, rgba(44, 166, 224, 0.08), transparent 18%);
+            opacity: 0.8;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        img {
+            max-width: 100%;
+            display: block;
+        }
+
+        .navbar {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 2rem;
+            background: rgba(2, 2, 2, 0.9);
+            border-bottom: 1px solid var(--line);
+            backdrop-filter: blur(14px);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.9rem;
+        }
+
+        .brand img {
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(244, 199, 106, 0.65);
+            box-shadow: 0 0 24px rgba(244, 199, 106, 0.2);
+        }
+
+        .brand-copy strong {
+            display: block;
+            font-size: 1.1rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .brand-copy span {
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1.2rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-links a {
+            color: var(--muted);
+            font-size: 0.95rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            transition: color 0.25s ease;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: var(--gold-strong);
+        }
+
+        .container {
+            width: min(1180px, calc(100% - 2rem));
+            margin: 0 auto;
+            padding: 2rem 0 4rem;
+        }
+
+        .page {
+            display: none;
+            animation: fadeIn 0.45s ease;
+        }
+
+        .page.active-page {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 2rem;
+            align-items: center;
+            padding: 2rem 0 1rem;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            color: var(--gold);
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+        }
+
+        .hero h1,
+        .section-title {
+            font-size: clamp(2.3rem, 5vw, 4.8rem);
+            line-height: 0.98;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+        }
+
+        .section-title {
+            font-size: clamp(2rem, 4vw, 3rem);
+            margin-bottom: 1.5rem;
+        }
+
+        .hero h1 span,
+        .section-title span {
+            color: var(--gold-strong);
+        }
+
+        .hero p {
+            max-width: 60ch;
+            color: var(--muted);
+            font-size: 1.05rem;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-top: 1.6rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.95rem 1.4rem;
+            border-radius: 999px;
+            border: 1px solid transparent;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--gold-strong), #e59d16);
+            color: #151515;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.02);
+            border-color: var(--line);
+            color: var(--text);
+        }
+
+        .hero-visual,
+        .panel,
+        .poster-card,
+        .info-card,
+        .photo-card,
+        .login-form,
+        .admin-section {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 28px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+        }
+
+        .hero-visual {
+            position: relative;
+            overflow: hidden;
+            padding: 1.2rem;
+        }
+
+        .hero-visual::after {
+            content: "";
+            position: absolute;
+            inset: auto -10% -15% auto;
+            width: 220px;
+            height: 220px;
+            background: radial-gradient(circle, rgba(44, 166, 224, 0.35), transparent 68%);
+        }
+
+        .hero-visual img {
+            width: 100%;
+            border-radius: 22px;
+            object-fit: cover;
+        }
+
+        .hero-badge {
+            position: absolute;
+            left: 2rem;
+            bottom: 2rem;
+            background: rgba(0, 0, 0, 0.74);
+            border: 1px solid rgba(255, 214, 102, 0.3);
+            border-radius: 20px;
+            padding: 0.85rem 1rem;
+            max-width: 250px;
+        }
+
+        .hero-badge strong {
+            display: block;
+            color: var(--gold-strong);
+            font-size: 1.2rem;
+        }
+
+        .section-block {
+            margin-top: 2rem;
+        }
+
+        .event-grid,
+        .about-grid,
+        .gallery-grid,
+        .contact-grid {
+            display: grid;
+            gap: 1.4rem;
+        }
+
+        .event-grid {
+            grid-template-columns: 1.2fr 0.8fr;
+            align-items: start;
+        }
+
+        .panel {
+            padding: 1.5rem;
+        }
+
+        .event-headline {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .event-date {
+            min-width: 120px;
+            text-align: center;
+            padding: 0.9rem;
+            border-radius: 20px;
+            background: rgba(255, 214, 102, 0.1);
+            border: 1px solid rgba(255, 214, 102, 0.24);
+        }
+
+        .event-date strong {
+            display: block;
+            font-size: 2.4rem;
+            line-height: 1;
+            color: var(--gold-strong);
+        }
+
+        .event-meta,
+        .highlights,
+        .contact-list,
+        .social-list,
+        .day-list {
+            display: grid;
+            gap: 0.8rem;
+        }
+
+        .meta-item,
+        .highlight-item,
+        .contact-item,
+        .social-item,
+        .day-item {
+            padding: 1rem 1.1rem;
+            background: var(--panel-soft);
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .meta-item strong,
+        .highlight-item strong,
+        .contact-item strong,
+        .social-item strong,
+        .day-item strong {
+            display: block;
+            color: var(--gold);
+            margin-bottom: 0.2rem;
+        }
+
+        .poster-card {
+            padding: 1rem;
+        }
+
+        .poster-card img {
+            width: 100%;
+            border-radius: 20px;
+        }
+
+        .about-grid {
+            grid-template-columns: 0.9fr 1.1fr;
+            align-items: stretch;
+        }
+
+        .logo-showcase {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            min-height: 100%;
+        }
+
+        .logo-showcase img {
+            width: min(100%, 380px);
+            aspect-ratio: 1 / 1;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 5px solid rgba(244, 199, 106, 0.55);
+            box-shadow: 0 0 40px rgba(244, 199, 106, 0.16);
+        }
+
+        .rich-text p + p {
+            margin-top: 1rem;
+        }
+
+        .gallery-grid {
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        }
+
+        .photo-card {
+            overflow: hidden;
+        }
+
+        .photo-card img {
+            width: 100%;
+            height: 260px;
+            object-fit: cover;
+        }
+
+        .photo-card figcaption {
+            padding: 1rem 1.1rem 1.2rem;
+        }
+
+        .photo-card strong {
+            display: block;
+            margin-bottom: 0.35rem;
+            color: var(--gold-strong);
+        }
+
+        .contact-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .small {
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .login-form,
+        .admin-section {
+            padding: 1.5rem;
+        }
+
+        .admin-layout {
+            display: grid;
+            gap: 1.4rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.4rem;
+            color: var(--gold);
+            font-weight: 700;
+            letter-spacing: 0.03em;
+        }
+
+        textarea,
+        input {
+            width: 100%;
+            padding: 0.85rem 1rem;
+            margin-bottom: 1rem;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            color: var(--text);
+            border-radius: 14px;
+            font-family: inherit;
+            font-size: 0.98rem;
+        }
+
+        textarea {
+            min-height: 140px;
+            resize: vertical;
+        }
+
+        button {
+            background: linear-gradient(135deg, var(--gold-strong), #e59d16);
+            color: #111;
+            border: none;
+            padding: 0.8rem 1.25rem;
+            font-weight: 800;
+            border-radius: 999px;
+            cursor: pointer;
+        }
+
+        .ghost-btn {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .danger-btn {
+            background: #c93030;
+            color: white;
+        }
+
+        .error {
+            color: #ff7d7d;
+            margin-top: 0.5rem;
+        }
+
+        .success {
+            color: #89e6b3;
+            margin-top: 0.5rem;
+        }
+
+        .admin-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .admin-gallery article {
+            padding: 0.75rem;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .admin-gallery img {
+            width: 100%;
+            height: 130px;
+            object-fit: cover;
+            border-radius: 14px;
+            margin-bottom: 0.75rem;
+        }
+
+        footer {
+            margin-top: 3rem;
+            padding: 2rem 1rem 3rem;
+            text-align: center;
+            color: #9a8f80;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        @media (max-width: 940px) {
+            .hero,
+            .event-grid,
+            .about-grid,
+            .contact-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 720px) {
+            .navbar {
+                padding: 1rem;
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .container {
+                width: min(100% - 1.2rem, 1180px);
+            }
+
+            .event-headline {
+                flex-direction: column;
+            }
+
+            .hero-badge {
+                position: static;
+                margin-top: 1rem;
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a class="brand" href="#inicio" onclick="showPage('inicio')">
+            <img src="assets/logo-motoclub.jpeg" alt="Logo de Moto Club Jujuy">
+            <div class="brand-copy">
+                <strong>Moto Club Jujuy</strong>
+                <span>@motoclubjujuy.oficial</span>
+            </div>
+        </a>
+        <div class="nav-links">
+            <a data-page="inicio" class="active" onclick="showPage('inicio')">Inicio</a>
+            <a data-page="evento" onclick="showPage('evento')">Evento 2026</a>
+            <a data-page="quienes" onclick="showPage('quienes')">Quiénes somos</a>
+            <a data-page="fotos" onclick="showPage('fotos')">Galería</a>
+            <a data-page="admin" onclick="showPage('admin')">Admin</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <section id="inicio" class="page active-page">
+            <div class="hero">
+                <div>
+                    <div class="eyebrow">Moto viajeros - Multimarcas</div>
+                    <h1>Rodamos juntos hacia el <span>6 Motoencuentro Internacional</span></h1>
+                    <p>
+                        Moto Club Jujuy presenta su nueva imagen y el gran encuentro que recorrerá Jujuy,
+                        Quebrada y Yungas. Cuatro días para compartir ruta, amistad y pasión por las dos ruedas.
+                    </p>
+                    <div class="hero-actions">
+                        <a class="btn btn-primary" href="#evento" onclick="showPage('evento')">Ver evento</a>
+                        <a class="btn btn-secondary" href="#quienes" onclick="showPage('quienes')">Conocer el club</a>
+                    </div>
+                </div>
+
+                <div class="hero-visual">
+                    <img src="assets/evento-motoencuentro.jpeg" alt="Afiche del 6 Motoencuentro Internacional">
+                    <div class="hero-badge">
+                        <strong>1 al 4 de octubre 2026</strong>
+                        <span>Jujuy - Quebrada - Yungas</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-block event-grid">
+                <article class="panel">
+                    <div class="event-headline">
+                        <div>
+                            <div class="eyebrow">Próximo gran encuentro</div>
+                            <h2 class="section-title">Nueva fecha, <span>nueva energía</span></h2>
+                        </div>
+                        <div class="event-date">
+                            <strong>01 02 03 04</strong>
+                            <span>Octubre 2026</span>
+                        </div>
+                    </div>
+
+                    <div class="event-meta">
+                        <div class="meta-item">
+                            <strong>Evento principal</strong>
+                            <span>6 Motoencuentro Internacional</span>
+                        </div>
+                        <div class="meta-item">
+                            <strong>Recorrido</strong>
+                            <span>Jujuy, Quebrada y Yungas</span>
+                        </div>
+                        <div class="meta-item">
+                            <strong>Convocatoria</strong>
+                            <span>Moto viajeros y multimarcas de Argentina y países vecinos</span>
+                        </div>
+                    </div>
+                </article>
+
+                <aside class="panel">
+                    <div class="highlights">
+                        <div class="highlight-item">
+                            <strong>Países invitados</strong>
+                            <span>Argentina, Chile, Bolivia, Brasil, Paraguay y Perú</span>
+                        </div>
+                        <div class="highlight-item">
+                            <strong>Instagram</strong>
+                            <span>@motoclubjujuy.oficial</span>
+                        </div>
+                        <div class="highlight-item">
+                            <strong>Redes del afiche</strong>
+                            <span>Facebook: motoclubjujuy | Instagram: motoclubjujuy2015</span>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </section>
+
+        <section id="evento" class="page">
+            <h2 class="section-title"><span>6 Motoencuentro</span> Internacional</h2>
+            <div class="event-grid">
+                <article class="panel">
+                    <div class="day-list">
+                        <div class="day-item">
+                            <strong>Jueves 1</strong>
+                            <span>Recepción, acreditaciones y bienvenida a las delegaciones.</span>
+                        </div>
+                        <div class="day-item">
+                            <strong>Viernes 2</strong>
+                            <span>Primeras salidas, recorridos y actividades de integración.</span>
+                        </div>
+                        <div class="day-item">
+                            <strong>Sábado 3</strong>
+                            <span>Jornada central del encuentro con presencia de motoviajeros y multimarcas.</span>
+                        </div>
+                        <div class="day-item">
+                            <strong>Domingo 4</strong>
+                            <span>Cierre del encuentro y última rodada compartida.</span>
+                        </div>
+                    </div>
+                </article>
+
+                <figure class="poster-card">
+                    <img src="assets/evento-motoencuentro.jpeg" alt="Afiche oficial del 6 Motoencuentro Internacional">
+                </figure>
+            </div>
+        </section>
+
+        <section id="quienes" class="page">
+            <h2 class="section-title">La esencia del <span>club</span></h2>
+            <div class="about-grid">
+                <div class="logo-showcase panel">
+                    <img src="assets/logo-motoclub.jpeg" alt="Logo oficial de Moto Club Jujuy">
+                </div>
+                <article class="panel rich-text">
+                    <div id="quienes-texto"></div>
+                </article>
+            </div>
+        </section>
+
+        <section id="fotos" class="page">
+            <h2 class="section-title">Postales de <span>ruta</span></h2>
+            <div id="galeria-container" class="gallery-grid"></div>
+            <p id="mensaje-fotos" class="small" style="margin-top:1rem;"></p>
+        </section>
+
+        <section id="admin" class="page">
+            <div id="admin-content"></div>
+        </section>
+
+        <section class="section-block">
+            <h2 class="section-title">Contacto y <span>redes</span></h2>
+            <div class="contact-grid">
+                <article class="panel">
+                    <div class="social-list">
+                        <div class="social-item">
+                            <strong>Instagram oficial</strong>
+                            <span>@motoclubjujuy.oficial</span>
+                        </div>
+                        <div class="social-item">
+                            <strong>Facebook</strong>
+                            <span>motoclubjujuy</span>
+                        </div>
+                        <div class="social-item">
+                            <strong>Instagram histórico</strong>
+                            <span>motoclubjujuy2015</span>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="panel">
+                    <div class="contact-list">
+                        <div class="contact-item">
+                            <strong>Zona del encuentro</strong>
+                            <span>Jujuy, Quebrada y Yungas</span>
+                        </div>
+                        <div class="contact-item">
+                            <strong>Fecha confirmada</strong>
+                            <span>1, 2, 3 y 4 de octubre de 2026</span>
+                        </div>
+                        <div class="contact-item">
+                            <strong>Tipo de evento</strong>
+                            <span>Internacional - Moto viajeros - Multimarcas</span>
+                        </div>
+                    </div>
+                </article>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>Moto Club Jujuy - Pasión por las dos ruedas © 2026</p>
+    </footer>
+
+    <script>
+        let isAdmin = false;
+
+        const defaultContent = {
+            quienes: `
+                <p>Moto Club Jujuy es una comunidad motera que une amistad, aventura y compromiso con la ruta. Nuestro nuevo perfil visual refleja lo que somos: identidad jujeña, pasión por viajar y una familia abierta a todas las marcas.</p>
+                <p>Durante el año organizamos salidas, encuentros y recorridos por paisajes únicos del norte argentino. Hoy estamos enfocados en el 6 Motoencuentro Internacional, una convocatoria pensada para recibir a motoviajeros de toda la región.</p>
+            `,
+            fotos: [
+                {
+                    url: "assets/evento-motoencuentro.jpeg",
+                    titulo: "Afiche oficial del 6 Motoencuentro Internacional",
+                    descripcion: "Nueva difusión del evento 2026."
+                },
+                {
+                    url: "assets/logo-motoclub.jpeg",
+                    titulo: "Logo oficial Moto Club Jujuy",
+                    descripcion: "Identidad visual del club."
+                }
+            ]
+        };
+
+        let contenido = structuredClone(defaultContent);
+
+        function loadData() {
+            const stored = localStorage.getItem("motoclub_data");
+            if (stored) {
+                try {
+                    const parsed = JSON.parse(stored);
+                    contenido = {
+                        quienes: parsed.quienes || defaultContent.quienes,
+                        fotos: Array.isArray(parsed.fotos) ? parsed.fotos : defaultContent.fotos
+                    };
+                } catch (error) {
+                    contenido = structuredClone(defaultContent);
+                }
+            }
+            renderPublicContent();
+        }
+
+        function saveData() {
+            localStorage.setItem("motoclub_data", JSON.stringify(contenido));
+            renderPublicContent();
+        }
+
+        function renderPublicContent() {
+            const quienesDiv = document.getElementById("quienes-texto");
+            if (quienesDiv) {
+                quienesDiv.innerHTML = contenido.quienes;
+            }
+
+            const galeriaDiv = document.getElementById("galeria-container");
+            const mensajeFotos = document.getElementById("mensaje-fotos");
+
+            if (!galeriaDiv) {
+                return;
+            }
+
+            if (!contenido.fotos.length) {
+                galeriaDiv.innerHTML = "";
+                if (mensajeFotos) {
+                    mensajeFotos.textContent = "Todavía no hay imágenes cargadas.";
+                }
+                return;
+            }
+
+            if (mensajeFotos) {
+                mensajeFotos.textContent = "";
+            }
+
+            galeriaDiv.innerHTML = contenido.fotos.map((foto) => `
+                <figure class="photo-card">
+                    <img src="${escapeAttribute(foto.url)}" alt="${escapeAttribute(foto.titulo)}" loading="lazy" onerror="this.src='https://placehold.co/700x500/111111/f4c76a?text=Imagen+no+disponible'">
+                    <figcaption>
+                        <strong>${escapeHtml(foto.titulo)}</strong>
+                        <span class="small">${escapeHtml(foto.descripcion || "")}</span>
+                    </figcaption>
+                </figure>
+            `).join("");
+        }
+
+        function showPage(pageId) {
+            document.querySelectorAll(".page").forEach((page) => {
+                page.classList.remove("active-page");
+            });
+
+            document.querySelectorAll(".nav-links a").forEach((link) => {
+                link.classList.toggle("active", link.dataset.page === pageId);
+            });
+
+            const nextPage = document.getElementById(pageId);
+            if (nextPage) {
+                nextPage.classList.add("active-page");
+            }
+
+            if (pageId === "admin") {
+                renderAdminPanel();
+            }
+        }
+
+        function renderAdminPanel() {
+            const adminDiv = document.getElementById("admin-content");
+            if (!adminDiv) {
+                return;
+            }
+
+            if (!isAdmin) {
+                adminDiv.innerHTML = `
+                    <div class="login-form">
+                        <h2 class="section-title" style="font-size:2rem; margin-bottom:1rem;">Acceso <span>admin</span></h2>
+                        <label for="admin-user">Usuario</label>
+                        <input type="text" id="admin-user" placeholder="Usuario" autocomplete="off">
+                        <label for="admin-pass">Contraseña</label>
+                        <input type="password" id="admin-pass" placeholder="Contraseña">
+                        <button onclick="loginAdmin()">Ingresar</button>
+                        <div id="login-error" class="error"></div>
+                    </div>
+                `;
+                return;
+            }
+
+            adminDiv.innerHTML = `
+                <div class="admin-layout">
+                    <section class="admin-section">
+                        <h2 class="section-title" style="font-size:2rem;">Editar <span>quiénes somos</span></h2>
+                        <label for="edit-quienes">Contenido HTML</label>
+                        <textarea id="edit-quienes"></textarea>
+                        <button onclick="guardarQuienes()">Guardar texto</button>
+                        <div id="msg-quienes" class="success"></div>
+                    </section>
+
+                    <section class="admin-section">
+                        <h2 class="section-title" style="font-size:2rem;">Galería <span>de fotos</span></h2>
+                        <label for="nueva-foto-url">URL o ruta de imagen</label>
+                        <input type="text" id="nueva-foto-url" placeholder="assets/nueva-imagen.jpg o https://...">
+                        <label for="nueva-foto-titulo">Título</label>
+                        <input type="text" id="nueva-foto-titulo" placeholder="Título de la foto">
+                        <label for="nueva-foto-descripcion">Descripción</label>
+                        <input type="text" id="nueva-foto-descripcion" placeholder="Breve descripción">
+                        <button onclick="agregarFoto()">Agregar imagen</button>
+                        <div id="lista-fotos-admin" class="admin-gallery"></div>
+                        <div id="msg-fotos" class="success"></div>
+                    </section>
+
+                    <section class="admin-section">
+                        <button class="ghost-btn" onclick="logoutAdmin()">Cerrar sesión</button>
+                    </section>
+                </div>
+            `;
+
+            const editQuienes = document.getElementById("edit-quienes");
+            if (editQuienes) {
+                editQuienes.value = contenido.quienes;
+            }
+
+            renderListaFotosAdmin();
+        }
+
+        function renderListaFotosAdmin() {
+            const listaDiv = document.getElementById("lista-fotos-admin");
+            if (!listaDiv) {
+                return;
+            }
+
+            if (!contenido.fotos.length) {
+                listaDiv.innerHTML = "<p class='small'>No hay imágenes cargadas.</p>";
+                return;
+            }
+
+            listaDiv.innerHTML = contenido.fotos.map((foto, index) => `
+                <article>
+                    <img src="${escapeAttribute(foto.url)}" alt="${escapeAttribute(foto.titulo)}" onerror="this.src='https://placehold.co/400x250/111111/f4c76a?text=Error'">
+                    <strong>${escapeHtml(foto.titulo)}</strong>
+                    <p class="small">${escapeHtml(foto.descripcion || "")}</p>
+                    <button class="danger-btn" onclick="eliminarFoto(${index})">Eliminar</button>
+                </article>
+            `).join("");
+        }
+
+        function loginAdmin() {
+            const user = document.getElementById("admin-user")?.value;
+            const pass = document.getElementById("admin-pass")?.value;
+
+            if (user === "admin" && pass === "admin123") {
+                isAdmin = true;
+                renderAdminPanel();
+                return;
+            }
+
+            const errorDiv = document.getElementById("login-error");
+            if (errorDiv) {
+                errorDiv.textContent = "Usuario o contraseña incorrectos.";
+            }
+        }
+
+        function logoutAdmin() {
+            isAdmin = false;
+            renderAdminPanel();
+            showPage("inicio");
+        }
+
+        function guardarQuienes() {
+            const nuevoTexto = document.getElementById("edit-quienes")?.value;
+            if (typeof nuevoTexto !== "string") {
+                return;
+            }
+
+            contenido.quienes = nuevoTexto;
+            saveData();
+
+            const msg = document.getElementById("msg-quienes");
+            if (msg) {
+                msg.textContent = "Texto actualizado correctamente.";
+                setTimeout(() => {
+                    msg.textContent = "";
+                }, 2200);
+            }
+        }
+
+        function agregarFoto() {
+            const url = document.getElementById("nueva-foto-url")?.value.trim();
+            const titulo = document.getElementById("nueva-foto-titulo")?.value.trim();
+            const descripcion = document.getElementById("nueva-foto-descripcion")?.value.trim();
+
+            if (!url) {
+                alert("Debés ingresar una ruta o URL de imagen.");
+                return;
+            }
+
+            contenido.fotos.push({
+                url,
+                titulo: titulo || "Nueva imagen",
+                descripcion: descripcion || ""
+            });
+
+            saveData();
+            renderListaFotosAdmin();
+
+            document.getElementById("nueva-foto-url").value = "";
+            document.getElementById("nueva-foto-titulo").value = "";
+            document.getElementById("nueva-foto-descripcion").value = "";
+
+            const msg = document.getElementById("msg-fotos");
+            if (msg) {
+                msg.textContent = "Imagen agregada correctamente.";
+                setTimeout(() => {
+                    msg.textContent = "";
+                }, 2200);
+            }
+        }
+
+        function eliminarFoto(index) {
+            if (!confirm("¿Eliminar esta imagen de la galería?")) {
+                return;
+            }
+
+            contenido.fotos.splice(index, 1);
+            saveData();
+            renderListaFotosAdmin();
+        }
+
+        function escapeHtml(value) {
+            return String(value || "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
+        }
+
+        function escapeAttribute(value) {
+            return escapeHtml(value).replace(/"/g, "&quot;");
+        }
+
+        loadData();
+
+        window.showPage = showPage;
+        window.loginAdmin = loginAdmin;
+        window.logoutAdmin = logoutAdmin;
+        window.guardarQuienes = guardarQuienes;
+        window.agregarFoto = agregarFoto;
+        window.eliminarFoto = eliminarFoto;
+    </script>
+</body>
+</html>
