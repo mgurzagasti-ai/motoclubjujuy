@@ -1,0 +1,996 @@
+:root {
+  --bg: #050505;
+  --panel: rgba(10, 10, 10, 0.82);
+  --panel-soft: rgba(255, 255, 255, 0.06);
+  --text: #f5f1e8;
+  --muted: #cbc2b3;
+  --line: rgba(255, 214, 102, 0.22);
+  --gold: #f4c76a;
+  --gold-strong: #ffcf40;
+  --blue: #2ca6e0;
+  --shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+  line-height: 1.6;
+  color: var(--text);
+  background:
+    radial-gradient(circle at top, rgba(244, 199, 106, 0.14), transparent 30%),
+    linear-gradient(180deg, rgba(8, 19, 34, 0.95), var(--bg) 34%, #020202 100%);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(transparent 96%, rgba(255, 255, 255, 0.02) 100%),
+    radial-gradient(circle at 20% 10%, rgba(44, 166, 224, 0.08), transparent 18%);
+  opacity: 0.8;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 2rem;
+  background: rgba(2, 2, 2, 0.9);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(14px);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.brand img {
+  width: 58px;
+  height: 58px;
+  object-fit: cover;
+  border: 2px solid rgba(244, 199, 106, 0.65);
+  border-radius: 50%;
+  box-shadow: 0 0 24px rgba(244, 199, 106, 0.2);
+}
+
+.brand-copy strong {
+  display: block;
+  font-size: 1.1rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.brand-copy span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.2rem;
+}
+
+.nav-links a {
+  color: var(--muted);
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: color 0.25s ease;
+}
+
+.nav-links a:hover {
+  color: var(--gold-strong);
+}
+
+.container {
+  width: min(1180px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 2rem 0 4rem;
+}
+
+.container,
+.hero,
+.event-grid,
+.about-grid,
+.contact-grid,
+.gallery-grid {
+  min-width: 0;
+}
+
+.page {
+  display: block;
+  padding-top: 1rem;
+}
+
+.page + .page,
+.section-block {
+  margin-top: 2rem;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 2rem;
+  align-items: center;
+  padding: 2rem 0 1rem;
+}
+
+.hero-copy {
+  min-width: 0;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  color: var(--gold);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.hero h1,
+.section-title {
+  margin-bottom: 1rem;
+  font-size: clamp(2.3rem, 5vw, 4.8rem);
+  line-height: 0.98;
+  text-transform: uppercase;
+}
+
+.section-title {
+  margin-bottom: 1.5rem;
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.hero h1 span,
+.section-title span {
+  color: var(--gold-strong);
+}
+
+.hero p {
+  max-width: 60ch;
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1.6rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.95rem 1.4rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--gold-strong), #e59d16);
+  color: #151515;
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+.hero-visual,
+.panel,
+.poster-card,
+.photo-card,
+.login-form,
+.admin-section {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+}
+
+.hero-visual {
+  position: relative;
+  overflow: hidden;
+  padding: 1.2rem;
+  min-height: 100%;
+}
+
+.poster-card {
+  overflow: hidden;
+}
+
+.poster-card--event {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-visual::after {
+  content: "";
+  position: absolute;
+  inset: auto -10% -15% auto;
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(circle, rgba(44, 166, 224, 0.35), transparent 68%);
+}
+
+.poster-image {
+  width: 100%;
+  height: auto;
+  max-height: min(78vh, 860px);
+  border-radius: 22px;
+  object-fit: contain;
+  object-position: center;
+}
+
+.hero-badge {
+  position: absolute;
+  left: 2rem;
+  bottom: 2rem;
+  max-width: 250px;
+  padding: 0.85rem 1rem;
+  background: rgba(0, 0, 0, 0.74);
+  border: 1px solid rgba(255, 214, 102, 0.3);
+  border-radius: 20px;
+}
+
+.hero-badge strong {
+  display: block;
+  color: var(--gold-strong);
+  font-size: 1.2rem;
+}
+
+.event-grid,
+.about-grid,
+.gallery-grid,
+.contact-grid {
+  display: grid;
+  gap: 1.4rem;
+}
+
+.event-grid {
+  grid-template-columns: 1.2fr 0.8fr;
+  align-items: start;
+}
+
+.panel,
+.login-form,
+.admin-section,
+.poster-card {
+  padding: 1.5rem;
+}
+
+.event-headline {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.event-date {
+  min-width: 120px;
+  padding: 0.9rem;
+  text-align: center;
+  background: rgba(255, 214, 102, 0.1);
+  border: 1px solid rgba(255, 214, 102, 0.24);
+  border-radius: 20px;
+}
+
+.event-date strong {
+  display: block;
+  color: var(--gold-strong);
+  font-size: 2.4rem;
+  line-height: 1;
+}
+
+.event-meta,
+.highlights,
+.contact-list,
+.social-list,
+.day-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.meta-item,
+.highlight-item,
+.contact-item,
+.social-item,
+.day-item {
+  padding: 1rem 1.1rem;
+  background: var(--panel-soft);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 18px;
+}
+
+.meta-item strong,
+.highlight-item strong,
+.contact-item strong,
+.social-item strong,
+.day-item strong {
+  display: block;
+  margin-bottom: 0.2rem;
+  color: var(--gold);
+}
+
+.about-grid {
+  grid-template-columns: 0.9fr 1.1fr;
+  align-items: stretch;
+}
+
+.logo-showcase {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+}
+
+.logo-showcase img {
+  width: min(100%, 380px);
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border: 5px solid rgba(244, 199, 106, 0.55);
+  border-radius: 50%;
+  box-shadow: 0 0 40px rgba(244, 199, 106, 0.16);
+}
+
+.rich-text p + p {
+  margin-top: 1rem;
+}
+
+.gallery-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.motoclub-carousel-shell {
+  margin-top: 1rem;
+}
+
+.motoclub-carousel {
+  position: relative;
+  overflow: hidden;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  box-shadow: var(--shadow);
+}
+
+.carousel-inner {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+.carousel-item {
+  position: relative;
+  display: none;
+  float: left;
+  width: 100%;
+  margin-right: -100%;
+  backface-visibility: hidden;
+  transition: transform 0.6s ease-in-out;
+}
+
+.carousel-item.active,
+.carousel-item-next,
+.carousel-item-prev {
+  display: block;
+}
+
+.carousel-item-next:not(.carousel-item-start),
+.active.carousel-item-end {
+  transform: translateX(100%);
+}
+
+.carousel-item-prev:not(.carousel-item-end),
+.active.carousel-item-start {
+  transform: translateX(-100%);
+}
+
+.motoclub-carousel-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: clamp(320px, 62vw, 720px);
+  padding: 1.2rem 1.2rem 0;
+}
+
+.motoclub-carousel-frame img {
+  width: 100%;
+  max-height: min(72vh, 760px);
+  object-fit: contain;
+  object-position: center;
+  border-radius: 22px;
+}
+
+.motoclub-carousel-caption {
+  display: grid;
+  gap: 0.2rem;
+  padding: 1rem 1.2rem 1.4rem;
+}
+
+.motoclub-carousel-caption strong {
+  color: var(--gold-strong);
+  font-size: 1.05rem;
+}
+
+.carousel-control-prev,
+.carousel-control-next {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: 999px;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.carousel-control-prev {
+  left: 1rem;
+}
+
+.carousel-control-next {
+  right: 1rem;
+}
+
+.motoclub-carousel-control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  color: var(--text);
+  font-size: 2rem;
+  line-height: 1;
+  background: rgba(0, 0, 0, 0.66);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  backdrop-filter: blur(8px);
+}
+
+.carousel-indicators {
+  position: absolute;
+  right: 0;
+  bottom: 0.9rem;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0 1rem;
+}
+
+.carousel-indicators button {
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.42);
+  border: 0;
+  border-radius: 999px;
+  opacity: 1;
+}
+
+.carousel-indicators button.active {
+  width: 30px;
+  background: var(--gold-strong);
+}
+
+.photo-card {
+  overflow: hidden;
+}
+
+.photo-card img {
+  width: 100%;
+  height: clamp(220px, 30vw, 280px);
+  object-fit: cover;
+}
+
+.photo-card figcaption {
+  padding: 1rem 1.1rem 1.2rem;
+}
+
+.photo-card strong {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--gold-strong);
+}
+
+.contact-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.subsection-title {
+  margin-bottom: 1rem;
+  color: var(--gold);
+  font-size: 1.2rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.event-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.event-mini-card {
+  overflow: hidden;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+}
+
+.event-mini-card-image img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+
+.event-mini-card-copy {
+  display: grid;
+  gap: 0.2rem;
+  padding: 1rem;
+}
+
+.event-mini-card-copy strong {
+  color: var(--gold-strong);
+}
+
+.small {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.admin-layout {
+  display: grid;
+  gap: 1.4rem;
+}
+
+.admin-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.admin-photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin-bottom: 1.2rem;
+}
+
+.admin-event-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.4rem;
+}
+
+.admin-event-chip {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.admin-event-chip.is-selected {
+  color: #111;
+  background: linear-gradient(135deg, var(--gold-strong), #e59d16);
+}
+
+.admin-event-form {
+  display: grid;
+  gap: 1.4rem;
+}
+
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.admin-collection-block {
+  display: grid;
+  gap: 0.8rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+}
+
+.admin-collection-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.admin-dual-row {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.2fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.sr-only-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.admin-picker-block {
+  margin-bottom: 1.4rem;
+}
+
+.admin-picker-title {
+  display: block;
+  margin-bottom: 0.8rem;
+  color: var(--gold);
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-internal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.9rem;
+}
+
+.admin-internal-card {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.7rem;
+  color: var(--text);
+  text-align: left;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+}
+
+.admin-internal-card.is-selected {
+  border-color: var(--gold-strong);
+  box-shadow: 0 0 0 1px rgba(255, 207, 64, 0.32);
+}
+
+.admin-internal-card img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 14px;
+}
+
+.admin-internal-card span {
+  font-size: 0.92rem;
+  line-height: 1.35;
+}
+
+.admin-preview-card {
+  margin-bottom: 1.2rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+}
+
+.admin-preview-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+}
+
+.admin-preview-frame img {
+  width: 100%;
+  max-height: 380px;
+  object-fit: contain;
+  border-radius: 16px;
+}
+
+.admin-title {
+  margin-bottom: 1rem;
+  font-size: 2rem;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.4rem;
+  color: var(--gold);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+textarea,
+input {
+  width: 100%;
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.98rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 14px;
+}
+
+textarea {
+  min-height: 140px;
+  resize: vertical;
+}
+
+button {
+  padding: 0.8rem 1.25rem;
+  color: #111;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--gold-strong), #e59d16);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.ghost-btn {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.danger-btn {
+  color: white;
+  background: #c93030;
+}
+
+.error {
+  margin-top: 0.5rem;
+  color: #ff7d7d;
+}
+
+.success {
+  margin-top: 0.5rem;
+  color: #89e6b3;
+}
+
+.admin-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.admin-gallery article {
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+}
+
+.admin-gallery img {
+  width: 100%;
+  height: 130px;
+  margin-bottom: 0.75rem;
+  object-fit: cover;
+  border-radius: 14px;
+}
+
+.admin-page-shell {
+  padding-top: 3rem;
+}
+
+.admin-topbar {
+  margin-bottom: 1.5rem;
+}
+
+footer {
+  margin-top: 3rem;
+  padding: 2rem 1rem 3rem;
+  text-align: center;
+  color: #9a8f80;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+@media (max-width: 940px) {
+  .hero,
+  .event-grid,
+  .about-grid,
+  .contact-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-visual,
+  .poster-card--event {
+    max-width: 720px;
+    margin-inline: auto;
+  }
+}
+
+@media (max-width: 720px) {
+  .navbar {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1rem;
+  }
+
+  .nav-links {
+    width: 100%;
+    gap: 0.85rem 1rem;
+  }
+
+  .nav-links a {
+    font-size: 0.88rem;
+  }
+
+  .container {
+    width: min(100% - 1.2rem, 1180px);
+  }
+
+  .page {
+    padding-top: 0.5rem;
+  }
+
+  .hero {
+    gap: 1.25rem;
+    padding-top: 1rem;
+  }
+
+  .hero h1 {
+    font-size: clamp(2.2rem, 13vw, 4rem);
+  }
+
+  .hero p {
+    font-size: 0.98rem;
+  }
+
+  .panel,
+  .login-form,
+  .admin-section,
+  .poster-card {
+    padding: 1.1rem;
+  }
+
+  .poster-image {
+    max-height: none;
+  }
+
+  .motoclub-carousel-frame {
+    min-height: 280px;
+    padding: 1rem 1rem 0;
+  }
+
+  .carousel-control-prev,
+  .carousel-control-next {
+    width: 44px;
+    height: 44px;
+  }
+
+  .carousel-control-prev {
+    left: 0.6rem;
+  }
+
+  .carousel-control-next {
+    right: 0.6rem;
+  }
+
+  .motoclub-carousel-control {
+    width: 40px;
+    height: 40px;
+    font-size: 1.65rem;
+  }
+
+  .event-headline {
+    flex-direction: column;
+  }
+
+  .hero-badge {
+    position: static;
+    max-width: 100%;
+    margin-top: 1rem;
+  }
+
+  .contact-grid,
+  .gallery-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-photo-actions {
+    flex-direction: column;
+  }
+
+  .admin-form-grid,
+  .admin-dual-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .brand {
+    gap: 0.75rem;
+  }
+
+  .brand-copy strong {
+    font-size: 1rem;
+  }
+
+  .brand-copy span {
+    font-size: 0.82rem;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+  }
+
+  .btn {
+    width: 100%;
+  }
+
+  .section-title {
+    font-size: clamp(1.7rem, 10vw, 2.5rem);
+  }
+
+  .motoclub-carousel-caption {
+    padding: 0.85rem 1rem 1.2rem;
+  }
+}
