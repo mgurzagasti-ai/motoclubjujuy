@@ -2,6 +2,7 @@ export type MotoPhoto = {
   url: string;
   titulo: string;
   descripcion: string;
+  publicId?: string;
 };
 
 export type InfoItem = {

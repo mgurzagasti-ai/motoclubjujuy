@@ -7,3 +7,6 @@ coverage
 .node-localstorage
 .node-localstorage-shm
 .node-localstorage-wal
+.env
+.env.local
+.env.*.local

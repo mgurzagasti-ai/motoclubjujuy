@@ -39,7 +39,7 @@ function createBlankDay(): EventDay {
 }
 
 export function AdminPanel() {
-  const { content, saveContent } = useMotoclubContent();
+  const { content, saveContent, cloudinaryEnabled, refreshPhotos } = useMotoclubContent();
   const [isAdmin, setIsAdmin] = useState(false);
   const [user, setUser] = useState("");
   const [pass, setPass] = useState("");
@@ -54,7 +54,10 @@ export function AdminPanel() {
   const [fotoGuardada, setFotoGuardada] = useState("");
   const [fotoError, setFotoError] = useState("");
   const [eventoGuardado, setEventoGuardado] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const photoPreviewUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     setQuienes(content.quienes);
@@ -77,6 +80,12 @@ export function AdminPanel() {
   );
 
   const resetPhotoForm = () => {
+    if (photoPreviewUrlRef.current) {
+      URL.revokeObjectURL(photoPreviewUrlRef.current);
+      photoPreviewUrlRef.current = null;
+    }
+
+    setSelectedFile(null);
     setFotoUrl("");
     setFotoTitulo("");
     setFotoDescripcion("");
@@ -114,13 +123,19 @@ export function AdminPanel() {
   };
 
   const handleSelectInternal = (foto: MotoPhoto) => {
+    if (photoPreviewUrlRef.current) {
+      URL.revokeObjectURL(photoPreviewUrlRef.current);
+      photoPreviewUrlRef.current = null;
+    }
+
+    setSelectedFile(null);
     setFotoUrl(foto.url);
     setFotoTitulo(foto.titulo);
     setFotoDescripcion(foto.descripcion);
     setFotoError("");
   };
 
-  const handleLocalFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+  const handleLocalFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
     if (!file) {
@@ -128,8 +143,14 @@ export function AdminPanel() {
     }
 
     try {
-      const dataUrl = await fileToDataUrl(file);
-      setFotoUrl(dataUrl);
+      if (photoPreviewUrlRef.current) {
+        URL.revokeObjectURL(photoPreviewUrlRef.current);
+      }
+
+      const previewUrl = URL.createObjectURL(file);
+      photoPreviewUrlRef.current = previewUrl;
+      setSelectedFile(file);
+      setFotoUrl(previewUrl);
       setFotoTitulo(file.name.replace(/\.[^.]+$/, ""));
       setFotoDescripcion("Imagen subida desde tu dispositivo.");
       setFotoError("");
@@ -177,6 +198,108 @@ export function AdminPanel() {
       ...content,
       fotos: content.fotos.filter((_, fotoIndex) => fotoIndex !== index),
     });
+  };
+
+  const handleAgregarFotoActual = async () => {
+    const trimmedUrl = fotoUrl.trim();
+
+    if (!trimmedUrl) {
+      setFotoError("Debes subir una imagen o pegar una URL publica.");
+      return;
+    }
+
+    if (cloudinaryEnabled) {
+      if (!selectedFile && !/^https?:\/\//i.test(trimmedUrl)) {
+        setFotoError("Con Cloudinary debes subir un archivo o usar una URL publica completa.");
+        return;
+      }
+
+      setIsUploadingPhoto(true);
+      setFotoError("");
+
+      try {
+        const body = new FormData();
+        body.set("title", fotoTitulo.trim() || "Nueva imagen");
+        body.set("description", fotoDescripcion.trim());
+
+        if (selectedFile) {
+          body.set("file", selectedFile);
+        } else {
+          body.set("sourceUrl", trimmedUrl);
+        }
+
+        const response = await fetch("/api/photos", {
+          method: "POST",
+          body,
+        });
+
+        const payload = (await response.json()) as { error?: string };
+
+        if (!response.ok) {
+          throw new Error(payload.error || "No se pudo subir la imagen.");
+        }
+
+        await refreshPhotos();
+        resetPhotoForm();
+        flashMessage(setFotoGuardada, "Imagen subida correctamente a Cloudinary.");
+      } catch (error) {
+        setFotoError(error instanceof Error ? error.message : "No se pudo subir la imagen.");
+      } finally {
+        setIsUploadingPhoto(false);
+      }
+
+      return;
+    }
+
+    const finalUrl = selectedFile ? await fileToDataUrl(selectedFile) : trimmedUrl;
+
+    saveContent({
+      ...content,
+      fotos: [
+        ...content.fotos,
+        {
+          url: finalUrl,
+          titulo: fotoTitulo.trim() || "Nueva imagen",
+          descripcion: fotoDescripcion.trim(),
+        },
+      ],
+    });
+
+    resetPhotoForm();
+    flashMessage(setFotoGuardada, "Imagen agregada correctamente.");
+  };
+
+  const handleEliminarFotoActual = async (foto: MotoPhoto, index: number) => {
+    const confirmed = window.confirm("Eliminar esta imagen de la galeria?");
+    if (!confirmed) {
+      return;
+    }
+
+    if (cloudinaryEnabled && foto.publicId) {
+      try {
+        const response = await fetch("/api/photos", {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ publicId: foto.publicId }),
+        });
+
+        const payload = (await response.json()) as { error?: string };
+
+        if (!response.ok) {
+          throw new Error(payload.error || "No se pudo eliminar la imagen.");
+        }
+
+        await refreshPhotos();
+        return;
+      } catch (error) {
+        setFotoError(error instanceof Error ? error.message : "No se pudo eliminar la imagen.");
+        return;
+      }
+    }
+
+    handleEliminarFoto(index);
   };
 
   const updateSelectedEvent = (updater: (event: ClubEvent) => ClubEvent) => {
@@ -777,7 +900,15 @@ export function AdminPanel() {
           type="text"
           placeholder="/assets/nueva-imagen.jpg, https://... o archivo local"
           value={fotoUrl}
-          onChange={(event) => setFotoUrl(event.target.value)}
+          onChange={(event) => {
+            if (photoPreviewUrlRef.current) {
+              URL.revokeObjectURL(photoPreviewUrlRef.current);
+              photoPreviewUrlRef.current = null;
+            }
+
+            setSelectedFile(null);
+            setFotoUrl(event.target.value);
+          }}
         />
 
         <label htmlFor="nueva-foto-titulo">Título</label>
@@ -807,8 +938,8 @@ export function AdminPanel() {
           </div>
         ) : null}
 
-        <button type="button" onClick={handleAgregarFoto}>
-          Agregar imagen
+        <button type="button" onClick={handleAgregarFotoActual} disabled={isUploadingPhoto}>
+          {isUploadingPhoto ? "Subiendo imagen..." : cloudinaryEnabled ? "Subir a Cloudinary" : "Agregar imagen"}
         </button>
 
         <div className="error">{fotoError}</div>
@@ -824,7 +955,8 @@ export function AdminPanel() {
                 <button
                   className="danger-btn"
                   type="button"
-                  onClick={() => handleEliminarFoto(index)}
+                  onClick={() => handleEliminarFotoActual(foto, index)}
+                  disabled={cloudinaryEnabled && !foto.publicId}
                 >
                   Eliminar
                 </button>
