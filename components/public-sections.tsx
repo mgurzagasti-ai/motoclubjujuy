@@ -5,6 +5,46 @@ import { PhotoCarousel } from "@/components/photo-carousel";
 import { defaultContent } from "@/lib/site-data";
 import { useMotoclubContent } from "@/lib/use-motoclub-content";
 
+function buildSocialHref(label: string, value: string) {
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue) {
+    return null;
+  }
+
+  if (/^https?:\/\//i.test(trimmedValue)) {
+    return trimmedValue;
+  }
+
+  const normalizedLabel = label.trim().toLowerCase();
+  const normalizedValue = trimmedValue.replace(/^@/, "");
+
+  if (normalizedLabel.includes("instagram")) {
+    return `https://www.instagram.com/${normalizedValue}/`;
+  }
+
+  if (normalizedLabel.includes("facebook")) {
+    return `https://www.facebook.com/${normalizedValue}`;
+  }
+
+  if (normalizedLabel.includes("whatsapp")) {
+    const phone = normalizedValue.replace(/\D/g, "");
+    return phone ? `https://wa.me/${phone}` : null;
+  }
+
+  if (normalizedLabel.includes("youtube")) {
+    return normalizedValue.startsWith("@")
+      ? `https://www.youtube.com/${normalizedValue}`
+      : `https://www.youtube.com/@${normalizedValue}`;
+  }
+
+  if (normalizedLabel.includes("x") || normalizedLabel.includes("twitter")) {
+    return `https://x.com/${normalizedValue}`;
+  }
+
+  return null;
+}
+
 export function PublicSections() {
   const { content } = useMotoclubContent();
   const featuredEvent = content.events[0] ?? defaultContent.events[0];
@@ -171,12 +211,22 @@ export function PublicSections() {
         <div className="contact-grid">
           <article className="panel">
             <div className="social-list">
-              {featuredEvent.socialItems.map((item, index) => (
-                <div className="social-item" key={`${item.label}-${index}`}>
-                  <strong>{item.label}</strong>
-                  <span>{item.value}</span>
-                </div>
-              ))}
+              {featuredEvent.socialItems.map((item, index) => {
+                const socialHref = buildSocialHref(item.label, item.value);
+
+                return (
+                  <div className="social-item" key={`${item.label}-${index}`}>
+                    <strong>{item.label}</strong>
+                    {socialHref ? (
+                      <a className="social-link" href={socialHref} target="_blank" rel="noreferrer">
+                        {item.value}
+                      </a>
+                    ) : (
+                      <span>{item.value}</span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </article>
 

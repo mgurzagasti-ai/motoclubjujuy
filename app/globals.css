@@ -360,6 +360,21 @@ img {
   color: var(--gold);
 }
 
+.social-link {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 207, 64, 0.45);
+  text-underline-offset: 0.2rem;
+  transition:
+    color 0.2s ease,
+    text-decoration-color 0.2s ease;
+}
+
+.social-link:hover {
+  color: var(--gold-strong);
+  text-decoration-color: var(--gold-strong);
+}
+
 .about-grid {
   grid-template-columns: 0.9fr 1.1fr;
   align-items: stretch;
