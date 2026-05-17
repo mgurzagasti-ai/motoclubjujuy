@@ -11,6 +11,7 @@ import {
   internalImageOptions,
   MotoPhoto,
   NewsItem,
+  sortNewsNewestFirst,
 } from "@/lib/site-data";
 import { useMotoclubContent } from "@/lib/use-motoclub-content";
 
@@ -41,7 +42,7 @@ function createBlankDay(): EventDay {
 }
 
 export function AdminPanel() {
-  const { content, saveContent, cloudinaryEnabled, refreshPhotos, contentSource } =
+  const { content, saveContent, cloudinaryEnabled, refreshPhotos, refreshSupabaseContent, contentSource } =
     useMotoclubContent();
   const [isAdmin, setIsAdmin] = useState(false);
   const [user, setUser] = useState("");
@@ -101,6 +102,7 @@ export function AdminPanel() {
     () => newsDraft.find((item) => item.id === selectedNewsId) ?? newsDraft[0] ?? null,
     [newsDraft, selectedNewsId]
   );
+  const newsPreviewItems = useMemo(() => sortNewsNewestFirst(newsDraft), [newsDraft]);
 
   const resetPhotoForm = () => {
     if (photoPreviewUrlRef.current) {
@@ -546,7 +548,8 @@ export function AdminPanel() {
         events: eventsDraft,
         novedades: newsDraft,
       });
-      flashMessage(setNovedadGuardada, "Novedades actualizadas correctamente.");
+      await refreshSupabaseContent();
+      flashMessage(setNovedadGuardada, "Novedad guardada y publicada correctamente.");
     } catch (saveFailure) {
       setFotoError(
         saveFailure instanceof Error ? saveFailure.message : "No se pudieron guardar las novedades."
@@ -1079,6 +1082,11 @@ export function AdminPanel() {
             </button>
           </div>
         </div>
+        <p className="admin-helper-text">
+          Crear novedad arma un borrador nuevo. Para que aparezca en la web, hace clic en
+          {" "}
+          Guardar y publicar novedades.
+        </p>
 
         <div className="admin-event-selector">
           {newsDraft.map((item) => (
@@ -1161,6 +1169,19 @@ export function AdminPanel() {
               </div>
             </div>
 
+            {selectedNews.imageUrl ? (
+              <div className="admin-preview-card">
+                <strong className="admin-picker-title">Vista previa de la foto subida</strong>
+                <div className="admin-preview-frame">
+                  <img
+                    src={selectedNews.imageUrl}
+                    alt={selectedNews.imageAlt || "Vista previa"}
+                    loading="lazy"
+                  />
+                </div>
+              </div>
+            ) : null}
+
             <div className="admin-picker-block">
               <strong className="admin-picker-title">Imagenes internas para novedades</strong>
               <div className="admin-internal-grid">
@@ -1187,17 +1208,49 @@ export function AdminPanel() {
               onChange={(event) => updateSelectedNewsField("description", event.target.value)}
             />
 
-            {selectedNews.imageUrl ? (
-              <div className="admin-preview-card">
-                <strong className="admin-picker-title">Vista previa de novedad</strong>
-                <div className="admin-preview-frame">
-                  <img src={selectedNews.imageUrl} alt={selectedNews.imageAlt || "Vista previa"} loading="lazy" />
-                </div>
+            <div className="admin-preview-card">
+              <div className="admin-preview-head">
+                <strong className="admin-picker-title">Asi se vera en Ultimas novedades</strong>
+                <button type="button" onClick={handleSaveNews}>
+                  Guardar y publicar novedades
+                </button>
               </div>
-            ) : null}
+              <div className="admin-news-preview-grid">
+                {newsPreviewItems.map((item, index) => (
+                  <button
+                    key={`preview-${item.id}`}
+                    type="button"
+                    className={`admin-news-preview-card ${
+                      item.id === selectedNews.id ? "is-selected" : ""
+                    }`}
+                    onClick={() => setSelectedNewsId(item.id)}
+                  >
+                    <div className="admin-news-preview-image">
+                      {item.imageUrl ? (
+                        <img
+                          src={item.imageUrl}
+                          alt={item.imageAlt || item.title || "Novedad"}
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="admin-news-preview-empty">Sin imagen</div>
+                      )}
+                    </div>
+                    <div className="admin-news-preview-copy">
+                      <div className="admin-news-preview-meta">
+                        <span>{index === 0 ? "Mas reciente" : `Posicion ${index + 1}`}</span>
+                        <span>{item.date || "Sin fecha"}</span>
+                      </div>
+                      <strong>{item.title || "Novedad sin titulo"}</strong>
+                      <p>{item.description || "Completa la descripcion para ver la tarjeta final."}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
 
             <button type="button" onClick={handleSaveNews}>
-              Guardar novedades
+              Guardar y publicar novedades
             </button>
             <div className="success">{novedadGuardada}</div>
             <div className="error">{fotoError}</div>

@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import Image from "next/image";
 import { PhotoCarousel } from "@/components/photo-carousel";
-import { ClubEvent, defaultContent } from "@/lib/site-data";
+import { ClubEvent, defaultContent, sortNewsNewestFirst } from "@/lib/site-data";
 import { hasSupabaseConfig, supabase } from "@/lib/supabase";
 import { useMotoclubContent } from "@/lib/use-motoclub-content";
 
@@ -242,7 +242,9 @@ export function PublicSections() {
   const { content } = useMotoclubContent();
   const featuredEvent = content.events[0] ?? defaultContent.events[0];
   const extraEvents = content.events.slice(1);
-  const novedades = content.novedades.length ? content.novedades : defaultContent.novedades;
+  const novedades = sortNewsNewestFirst(
+    content.novedades.length ? content.novedades : defaultContent.novedades
+  );
   const registrationHref = buildRegistrationHref(featuredEvent.registrationHref);
 
   return (

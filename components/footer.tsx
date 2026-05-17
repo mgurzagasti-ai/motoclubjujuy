@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { defaultContent } from "@/lib/site-data";
 import { hasSupabaseConfig, supabase } from "@/lib/supabase";
@@ -75,6 +76,33 @@ function getSocialIcon(label: string) {
   return "#";
 }
 
+function getSocialIconAsset(label: string) {
+  const normalizedLabel = label.toLowerCase();
+
+  if (normalizedLabel.includes("instagram")) {
+    return {
+      src: "/assets/instagram-logo.avif",
+      alt: "Logo de Instagram",
+    };
+  }
+
+  if (normalizedLabel.includes("facebook")) {
+    return {
+      src: "/assets/facebook-logo.png",
+      alt: "Logo de Facebook",
+    };
+  }
+
+  if (normalizedLabel.includes("whatsapp")) {
+    return {
+      src: "/assets/whatsapp-logo.svg",
+      alt: "Logo de WhatsApp",
+    };
+  }
+
+  return null;
+}
+
 export function Footer() {
   const { content } = useMotoclubContent();
   const [visitCount, setVisitCount] = useState(0);
@@ -148,15 +176,32 @@ export function Footer() {
   }, []);
 
   const socialLinks = useMemo(
-    () =>
-      featuredEvent.socialItems
+    () => {
+      const links = featuredEvent.socialItems
         .map((item) => ({
           ...item,
           href: buildSocialHref(item.label, item.value),
           icon: getSocialIcon(item.label),
         }))
-        .filter((item) => Boolean(item.href)),
-    [featuredEvent.socialItems]
+        .filter((item) => Boolean(item.href));
+
+      const hasWhatsapp = links.some((item) => item.label.toLowerCase().includes("whatsapp"));
+      const registrationHref = featuredEvent.registrationHref?.trim() || "";
+      const isWhatsappRegistration =
+        /^https?:\/\/(wa\.me|api\.whatsapp\.com)\//i.test(registrationHref);
+
+      if (!hasWhatsapp && isWhatsappRegistration) {
+        links.push({
+          label: "WhatsApp",
+          value: registrationHref,
+          href: registrationHref,
+          icon: getSocialIcon("whatsapp"),
+        });
+      }
+
+      return links;
+    },
+    [featuredEvent.registrationHref, featuredEvent.socialItems]
   );
 
   return (
@@ -178,22 +223,32 @@ export function Footer() {
         <div className="footer-block">
           <strong>Seguinos en las redes sociales</strong>
           <div className="footer-socials">
-            {socialLinks.map((item, index) => (
-              <a
-                key={`${item.label}-${index}`}
-                className="footer-social-link"
-                href={item.href ?? "#"}
-                target="_blank"
-                rel="noreferrer"
-                aria-label={item.label}
-                title={`${item.label}: ${item.value}`}
-              >
-                <span className="footer-social-icon" aria-hidden="true">
-                  {item.icon}
-                </span>
-                <span>{item.label}</span>
-              </a>
-            ))}
+            {socialLinks.map((item, index) => {
+              const iconAsset = getSocialIconAsset(item.label);
+
+              return (
+                <a
+                  key={`${item.label}-${index}`}
+                  className="footer-social-link"
+                  href={item.href ?? "#"}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={item.label}
+                  title={`${item.label}: ${item.value}`}
+                >
+                  {iconAsset ? (
+                    <span className="footer-social-icon footer-social-icon--image" aria-hidden="true">
+                      <Image src={iconAsset.src} alt={iconAsset.alt} width={32} height={32} />
+                    </span>
+                  ) : (
+                    <span className="footer-social-icon" aria-hidden="true">
+                      {item.icon}
+                    </span>
+                  )}
+                  <span>{item.label}</span>
+                </a>
+              );
+            })}
           </div>
         </div>
       </div>

@@ -17,6 +17,7 @@ export type EventDay = {
 
 export type NewsItem = {
   id: string;
+  createdAt: string;
   title: string;
   tag: string;
   date: string;
@@ -97,12 +98,38 @@ export function normalizeEvent(event: Partial<ClubEvent> | undefined, index = 0)
 
 export function normalizeNewsItem(item: Partial<NewsItem> | undefined, index = 0): NewsItem {
   const fallbackNews = createDefaultNewsItem();
+  const fallbackCreatedAtFromId =
+    typeof item?.id === "string" && /^news-\d+$/.test(item.id)
+      ? new Date(Number(item.id.replace("news-", ""))).toISOString()
+      : fallbackNews.createdAt;
 
   return {
     ...fallbackNews,
     ...item,
     id: item?.id || `news-restored-${index}`,
+    createdAt: item?.createdAt || fallbackCreatedAtFromId,
   };
+}
+
+export function sortNewsNewestFirst(items: NewsItem[]): NewsItem[] {
+  return [...items].sort((a, b) => {
+    const timeA = Date.parse(a.createdAt || "");
+    const timeB = Date.parse(b.createdAt || "");
+
+    if (Number.isNaN(timeA) && Number.isNaN(timeB)) {
+      return 0;
+    }
+
+    if (Number.isNaN(timeA)) {
+      return 1;
+    }
+
+    if (Number.isNaN(timeB)) {
+      return -1;
+    }
+
+    return timeB - timeA;
+  });
 }
 
 export function normalizeContent(parsed: Partial<MotoclubContent> | null | undefined): MotoclubContent {
@@ -123,13 +150,13 @@ export function normalizeContent(parsed: Partial<MotoclubContent> | null | undef
 export function createDefaultNewsItem(): NewsItem {
   return {
     id: `news-${Date.now()}`,
-    title: "Nueva rodada anunciada",
-    tag: "Novedad principal",
-    date: "Mayo 2026",
-    description:
-      "Compartimos la agenda del club con nuevas salidas, encuentros y actividades para toda la comunidad motera.",
-    imageUrl: "/assets/evento-motoencuentro.jpeg",
-    imageAlt: "Afiche de actividad de Moto Club Jujuy",
+    createdAt: new Date().toISOString(),
+    title: "Nueva novedad",
+    tag: "Borrador",
+    date: "",
+    description: "",
+    imageUrl: "",
+    imageAlt: "",
   };
 }
 
