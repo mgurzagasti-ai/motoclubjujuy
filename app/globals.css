@@ -52,6 +52,10 @@ img {
   max-width: 100%;
 }
 
+img[data-nimg] {
+  height: auto;
+}
+
 .navbar {
   position: sticky;
   top: 0;
@@ -584,6 +588,58 @@ img {
   gap: 1rem;
 }
 
+.registration-shell {
+  margin-top: 1.4rem;
+}
+
+.registration-panel {
+  display: block;
+}
+
+.registration-copy {
+  max-width: 68ch;
+}
+
+.registration-form-shell {
+  display: grid;
+  gap: 1rem;
+  width: 100%;
+}
+
+.registration-form-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.registration-form {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.registration-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.registration-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  align-items: center;
+}
+
+.registration-link-btn {
+  width: fit-content;
+}
+
+.registration-toggle {
+  align-self: flex-start;
+}
+
 .event-mini-card {
   overflow: hidden;
   background: var(--panel);
@@ -606,6 +662,85 @@ img {
 
 .event-mini-card-copy strong {
   color: var(--gold-strong);
+}
+
+.event-mini-registration {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.event-mini-registration-title {
+  color: var(--gold);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mini-card-button {
+  width: 100%;
+}
+
+.registration-form-shell.is-compact .registration-grid {
+  grid-template-columns: 1fr;
+}
+
+.registration-form-shell.is-compact textarea {
+  min-height: 110px;
+}
+
+.news-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.2rem;
+}
+
+.news-card {
+  overflow: hidden;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+}
+
+.news-card-image img {
+  width: 100%;
+  aspect-ratio: 16 / 11;
+  object-fit: cover;
+}
+
+.news-card-copy {
+  display: grid;
+  gap: 0.7rem;
+  padding: 1.1rem;
+}
+
+.news-card-copy strong {
+  color: var(--gold-strong);
+  font-size: 1.15rem;
+}
+
+.news-card-copy p {
+  color: var(--muted);
+}
+
+.news-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.news-card-meta span {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
 }
 
 .small {
@@ -859,12 +994,83 @@ button {
   margin-bottom: 1.5rem;
 }
 
-footer {
+.site-footer {
   margin-top: 3rem;
   padding: 2rem 1rem 3rem;
-  text-align: center;
   color: #9a8f80;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.footer-grid {
+  width: min(1180px, calc(100% - 2rem));
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.2rem;
+}
+
+.footer-block {
+  display: grid;
+  gap: 0.7rem;
+  padding: 1.1rem 1.2rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 22px;
+}
+
+.footer-block strong {
+  color: var(--gold-strong);
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.footer-block p {
+  color: var(--muted);
+}
+
+.footer-helper {
+  font-size: 0.88rem;
+}
+
+.footer-socials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.footer-social-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 0.9rem;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.footer-social-link:hover {
+  color: var(--gold-strong);
+  border-color: rgba(255, 207, 64, 0.4);
+  transform: translateY(-2px);
+}
+
+.footer-social-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  color: #111;
+  font-size: 0.78rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--gold-strong), #e59d16);
+  border-radius: 999px;
 }
 
 @media (max-width: 940px) {
@@ -970,8 +1176,16 @@ footer {
     grid-template-columns: 1fr;
   }
 
+  .footer-grid {
+    grid-template-columns: 1fr;
+  }
+
   .admin-photo-actions {
     flex-direction: column;
+  }
+
+  .registration-grid {
+    grid-template-columns: 1fr;
   }
 
   .admin-form-grid,

@@ -5,10 +5,12 @@ import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "re
 import {
   ClubEvent,
   createDefaultEvent,
+  createDefaultNewsItem,
   EventDay,
   InfoItem,
   internalImageOptions,
   MotoPhoto,
+  NewsItem,
 } from "@/lib/site-data";
 import { useMotoclubContent } from "@/lib/use-motoclub-content";
 
@@ -39,14 +41,17 @@ function createBlankDay(): EventDay {
 }
 
 export function AdminPanel() {
-  const { content, saveContent, cloudinaryEnabled, refreshPhotos } = useMotoclubContent();
+  const { content, saveContent, cloudinaryEnabled, refreshPhotos, contentSource } =
+    useMotoclubContent();
   const [isAdmin, setIsAdmin] = useState(false);
   const [user, setUser] = useState("");
   const [pass, setPass] = useState("");
   const [loginError, setLoginError] = useState("");
   const [quienes, setQuienes] = useState(content.quienes);
   const [eventsDraft, setEventsDraft] = useState<ClubEvent[]>(content.events);
+  const [newsDraft, setNewsDraft] = useState<NewsItem[]>(content.novedades);
   const [selectedEventId, setSelectedEventId] = useState(content.events[0]?.id ?? "");
+  const [selectedNewsId, setSelectedNewsId] = useState(content.novedades[0]?.id ?? "");
   const [fotoUrl, setFotoUrl] = useState("");
   const [fotoTitulo, setFotoTitulo] = useState("");
   const [fotoDescripcion, setFotoDescripcion] = useState("");
@@ -54,9 +59,11 @@ export function AdminPanel() {
   const [fotoGuardada, setFotoGuardada] = useState("");
   const [fotoError, setFotoError] = useState("");
   const [eventoGuardado, setEventoGuardado] = useState("");
+  const [novedadGuardada, setNovedadGuardada] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const newsFileInputRef = useRef<HTMLInputElement | null>(null);
   const photoPreviewUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -74,9 +81,25 @@ export function AdminPanel() {
     });
   }, [content.events]);
 
+  useEffect(() => {
+    setNewsDraft(content.novedades);
+    setSelectedNewsId((currentId) => {
+      if (content.novedades.some((item) => item.id === currentId)) {
+        return currentId;
+      }
+
+      return content.novedades[0]?.id ?? "";
+    });
+  }, [content.novedades]);
+
   const selectedEvent = useMemo(
     () => eventsDraft.find((event) => event.id === selectedEventId) ?? eventsDraft[0] ?? null,
     [eventsDraft, selectedEventId]
+  );
+
+  const selectedNews = useMemo(
+    () => newsDraft.find((item) => item.id === selectedNewsId) ?? newsDraft[0] ?? null,
+    [newsDraft, selectedNewsId]
   );
 
   const resetPhotoForm = () => {
@@ -101,25 +124,72 @@ export function AdminPanel() {
     window.setTimeout(() => setter(""), 2200);
   };
 
-  const handleLogin = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    if (user === "admin" && pass === "admin123") {
-      setIsAdmin(true);
-      setLoginError("");
-      return;
-    }
-
-    setLoginError("Usuario o contraseña incorrectos.");
-  };
-
-  const handleGuardarQuienes = () => {
-    saveContent({
-      ...content,
-      quienes,
+  const persistContent = async (nextSnapshot: typeof content) => {
+    const response = await fetch("/api/site-content", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        username: user,
+        password: pass,
+        content: nextSnapshot,
+      }),
     });
 
-    flashMessage(setTextoGuardado, "Texto actualizado correctamente.");
+    const payload = (await response.json()) as { error?: string; content?: typeof content };
+
+    if (!response.ok) {
+      throw new Error(payload.error || "No se pudo guardar el contenido.");
+    }
+
+    saveContent(payload.content || nextSnapshot);
+  };
+
+  const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    try {
+      const response = await fetch("/api/admin/session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: user,
+          password: pass,
+        }),
+      });
+
+      const payload = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.error || "No se pudo iniciar sesion.");
+      }
+
+      setIsAdmin(true);
+      setLoginError("");
+    } catch (loginFailure) {
+      setLoginError(
+        loginFailure instanceof Error ? loginFailure.message : "No se pudo iniciar sesion."
+      );
+    }
+  };
+
+  const handleGuardarQuienes = async () => {
+    try {
+      await persistContent({
+      ...content,
+      quienes,
+      events: eventsDraft,
+      novedades: newsDraft,
+      });
+      flashMessage(setTextoGuardado, "Texto actualizado correctamente.");
+    } catch (saveFailure) {
+      setLoginError(
+        saveFailure instanceof Error ? saveFailure.message : "No se pudo guardar el contenido."
+      );
+    }
   };
 
   const handleSelectInternal = (foto: MotoPhoto) => {
@@ -159,6 +229,38 @@ export function AdminPanel() {
     }
   };
 
+  const handleSelectNewsInternal = (foto: MotoPhoto) => {
+    updateSelectedNews((item) => ({
+      ...item,
+      imageUrl: foto.url,
+      imageAlt: foto.titulo,
+    }));
+  };
+
+  const handleNewsLocalFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+
+    if (!file || !selectedNews) {
+      return;
+    }
+
+    try {
+      const previewUrl = await fileToDataUrl(file);
+      updateSelectedNews((item) => ({
+        ...item,
+        imageUrl: previewUrl,
+        imageAlt: item.imageAlt || file.name.replace(/\.[^.]+$/, ""),
+      }));
+      setFotoError("");
+    } catch {
+      setFotoError("No se pudo cargar la imagen para la novedad.");
+    } finally {
+      if (newsFileInputRef.current) {
+        newsFileInputRef.current.value = "";
+      }
+    }
+  };
+
   const handleOpenWebSearch = () => {
     const searchTerm = encodeURIComponent(
       fotoTitulo.trim() || selectedEvent?.name || "moto club jujuy moto encuentro"
@@ -166,36 +268,17 @@ export function AdminPanel() {
     window.open(`https://www.google.com/search?tbm=isch&q=${searchTerm}`, "_blank");
   };
 
-  const handleAgregarFoto = () => {
-    if (!fotoUrl.trim()) {
-      setFotoError("Debés elegir una imagen interna, subir un archivo o pegar una URL.");
-      return;
-    }
-
-    saveContent({
-      ...content,
-      fotos: [
-        ...content.fotos,
-        {
-          url: fotoUrl.trim(),
-          titulo: fotoTitulo.trim() || "Nueva imagen",
-          descripcion: fotoDescripcion.trim(),
-        },
-      ],
-    });
-
-    resetPhotoForm();
-    flashMessage(setFotoGuardada, "Imagen agregada correctamente.");
-  };
-
   const handleEliminarFoto = (index: number) => {
-    const confirmed = window.confirm("¿Eliminar esta imagen de la galería?");
+    const confirmed = window.confirm("Eliminar esta imagen de la galeria?");
     if (!confirmed) {
       return;
     }
 
     saveContent({
       ...content,
+      quienes,
+      events: eventsDraft,
+      novedades: newsDraft,
       fotos: content.fotos.filter((_, fotoIndex) => fotoIndex !== index),
     });
   };
@@ -255,6 +338,9 @@ export function AdminPanel() {
 
     saveContent({
       ...content,
+      quienes,
+      events: eventsDraft,
+      novedades: newsDraft,
       fotos: [
         ...content.fotos,
         {
@@ -386,7 +472,7 @@ export function AdminPanel() {
       return;
     }
 
-    const confirmed = window.confirm("¿Eliminar este evento?");
+    const confirmed = window.confirm("Eliminar este evento?");
     if (!confirmed) {
       return;
     }
@@ -396,13 +482,76 @@ export function AdminPanel() {
     setSelectedEventId(nextEvents[0]?.id ?? "");
   };
 
-  const handleSaveEvents = () => {
-    saveContent({
-      ...content,
-      events: eventsDraft,
-    });
+  const handleSaveEvents = async () => {
+    try {
+      await persistContent({
+        ...content,
+        quienes,
+        events: eventsDraft,
+        novedades: newsDraft,
+      });
+      flashMessage(setEventoGuardado, "Eventos actualizados correctamente.");
+    } catch (saveFailure) {
+      setFotoError(
+        saveFailure instanceof Error ? saveFailure.message : "No se pudieron guardar los eventos."
+      );
+    }
+  };
 
-    flashMessage(setEventoGuardado, "Eventos actualizados correctamente.");
+  const updateSelectedNews = (updater: (item: NewsItem) => NewsItem) => {
+    if (!selectedNews) {
+      return;
+    }
+
+    setNewsDraft((current) =>
+      current.map((item) => (item.id === selectedNews.id ? updater(item) : item))
+    );
+  };
+
+  const updateSelectedNewsField = <K extends keyof NewsItem>(field: K, value: NewsItem[K]) => {
+    updateSelectedNews((item) => ({
+      ...item,
+      [field]: value,
+    }));
+  };
+
+  const handleAddNews = () => {
+    const newItem = createDefaultNewsItem();
+    setNewsDraft((current) => [...current, newItem]);
+    setSelectedNewsId(newItem.id);
+  };
+
+  const handleRemoveSelectedNews = () => {
+    if (!selectedNews || newsDraft.length <= 1) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Eliminar la novedad "${selectedNews.title || "Sin titulo"}"?`
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    const nextNews = newsDraft.filter((item) => item.id !== selectedNews.id);
+    setNewsDraft(nextNews);
+    setSelectedNewsId(nextNews[0]?.id ?? "");
+  };
+
+  const handleSaveNews = async () => {
+    try {
+      await persistContent({
+        ...content,
+        quienes,
+        events: eventsDraft,
+        novedades: newsDraft,
+      });
+      flashMessage(setNovedadGuardada, "Novedades actualizadas correctamente.");
+    } catch (saveFailure) {
+      setFotoError(
+        saveFailure instanceof Error ? saveFailure.message : "No se pudieron guardar las novedades."
+      );
+    }
   };
 
   if (!isAdmin) {
@@ -422,11 +571,11 @@ export function AdminPanel() {
             onChange={(event) => setUser(event.target.value)}
           />
 
-          <label htmlFor="admin-pass">Contraseña</label>
+          <label htmlFor="admin-pass">Contrasena</label>
           <input
             id="admin-pass"
             type="password"
-            placeholder="Contraseña"
+            placeholder="Contrasena"
             value={pass}
             onChange={(event) => setPass(event.target.value)}
           />
@@ -442,7 +591,20 @@ export function AdminPanel() {
     <div className="admin-layout">
       <section className="admin-section">
         <h2 className="section-title admin-title">
-          Editar <span>quiénes somos</span>
+          Estado de <span>integracion</span>
+        </h2>
+        <p className="small">
+          Contenido publico actual: {contentSource === "supabase" ? "Supabase" : "Almacenamiento local"}
+        </p>
+        <p className="small">
+          Los cambios del admin ahora intentan guardarse en Supabase usando una ruta segura del
+          servidor.
+        </p>
+      </section>
+
+      <section className="admin-section">
+        <h2 className="section-title admin-title">
+          Editar <span>quienes somos</span>
         </h2>
         <label htmlFor="edit-quienes">Contenido HTML</label>
         <textarea
@@ -454,6 +616,7 @@ export function AdminPanel() {
           Guardar texto
         </button>
         <div className="success">{textoGuardado}</div>
+        <div className="error">{loginError}</div>
       </section>
 
       <section className="admin-section">
@@ -484,7 +647,7 @@ export function AdminPanel() {
               className={`admin-event-chip ${event.id === selectedEvent?.id ? "is-selected" : ""}`}
               onClick={() => setSelectedEventId(event.id)}
             >
-              {event.name || "Evento sin título"}
+              {event.name || "Evento sin titulo"}
             </button>
           ))}
         </div>
@@ -502,7 +665,7 @@ export function AdminPanel() {
                 />
               </div>
               <div>
-                <label htmlFor="event-poster-url">Afiche / imagen principal</label>
+                <label htmlFor="event-poster-url">Afiche o imagen principal</label>
                 <input
                   id="event-poster-url"
                   type="text"
@@ -529,7 +692,7 @@ export function AdminPanel() {
                 />
               </div>
               <div>
-                <label htmlFor="event-badge-location">Ubicación visible</label>
+                <label htmlFor="event-badge-location">Ubicacion visible</label>
                 <input
                   id="event-badge-location"
                   type="text"
@@ -538,7 +701,7 @@ export function AdminPanel() {
                 />
               </div>
               <div>
-                <label htmlFor="event-date-numbers">Bloque numérico</label>
+                <label htmlFor="event-date-numbers">Bloque numerico</label>
                 <input
                   id="event-date-numbers"
                   type="text"
@@ -547,7 +710,7 @@ export function AdminPanel() {
                 />
               </div>
               <div>
-                <label htmlFor="event-date-month">Mes y año</label>
+                <label htmlFor="event-date-month">Mes y ano</label>
                 <input
                   id="event-date-month"
                   type="text"
@@ -568,7 +731,7 @@ export function AdminPanel() {
                 />
               </div>
               <div>
-                <label htmlFor="hero-prefix">Título principal</label>
+                <label htmlFor="hero-prefix">Titulo principal</label>
                 <input
                   id="hero-prefix"
                   type="text"
@@ -579,7 +742,7 @@ export function AdminPanel() {
                 />
               </div>
               <div>
-                <label htmlFor="hero-highlight">Título destacado</label>
+                <label htmlFor="hero-highlight">Titulo destacado</label>
                 <input
                   id="hero-highlight"
                   type="text"
@@ -591,7 +754,7 @@ export function AdminPanel() {
               </div>
             </div>
 
-            <label htmlFor="hero-description">Descripción principal</label>
+            <label htmlFor="hero-description">Descripcion principal</label>
             <textarea
               id="hero-description"
               value={selectedEvent.heroDescription}
@@ -611,7 +774,7 @@ export function AdminPanel() {
                 />
               </div>
               <div>
-                <label htmlFor="summary-prefix">Título resumen</label>
+                <label htmlFor="summary-prefix">Titulo resumen</label>
                 <input
                   id="summary-prefix"
                   type="text"
@@ -622,7 +785,7 @@ export function AdminPanel() {
                 />
               </div>
               <div>
-                <label htmlFor="summary-highlight">Título resumen destacado</label>
+                <label htmlFor="summary-highlight">Titulo resumen destacado</label>
                 <input
                   id="summary-highlight"
                   type="text"
@@ -633,7 +796,7 @@ export function AdminPanel() {
                 />
               </div>
               <div>
-                <label htmlFor="section-prefix">Título sección evento</label>
+                <label htmlFor="section-prefix">Titulo seccion evento</label>
                 <input
                   id="section-prefix"
                   type="text"
@@ -654,6 +817,54 @@ export function AdminPanel() {
                   }
                 />
               </div>
+            </div>
+
+            <div className="admin-collection-block">
+              <div className="admin-collection-head">
+                <strong className="admin-picker-title">Inscripcion del evento</strong>
+              </div>
+              <div className="admin-form-grid">
+                <div>
+                  <label htmlFor="registration-title">Titulo del bloque</label>
+                  <input
+                    id="registration-title"
+                    type="text"
+                    value={selectedEvent.registrationTitle}
+                    onChange={(event) =>
+                      updateSelectedEventField("registrationTitle", event.target.value)
+                    }
+                  />
+                </div>
+                <div>
+                  <label htmlFor="registration-label">Texto del boton</label>
+                  <input
+                    id="registration-label"
+                    type="text"
+                    value={selectedEvent.registrationLabel}
+                    onChange={(event) =>
+                      updateSelectedEventField("registrationLabel", event.target.value)
+                    }
+                  />
+                </div>
+              </div>
+              <label htmlFor="registration-description">Descripcion de inscripcion</label>
+              <textarea
+                id="registration-description"
+                value={selectedEvent.registrationDescription}
+                onChange={(event) =>
+                  updateSelectedEventField("registrationDescription", event.target.value)
+                }
+              />
+              <label htmlFor="registration-href">Link o telefono para inscripcion</label>
+              <input
+                id="registration-href"
+                type="text"
+                placeholder="https://..., mail@..., +549..."
+                value={selectedEvent.registrationHref}
+                onChange={(event) =>
+                  updateSelectedEventField("registrationHref", event.target.value)
+                }
+              />
             </div>
 
             <div className="admin-collection-block">
@@ -736,14 +947,14 @@ export function AdminPanel() {
               <div className="admin-collection-head">
                 <strong className="admin-picker-title">Agenda del evento</strong>
                 <button type="button" className="ghost-btn" onClick={addDayItem}>
-                  Agregar día
+                  Agregar dia
                 </button>
               </div>
               {selectedEvent.dayItems.map((item, index) => (
                 <div className="admin-dual-row" key={`day-${index}`}>
                   <input
                     type="text"
-                    placeholder="Día"
+                    placeholder="Dia"
                     value={item.day}
                     onChange={(event) => updateDayItem(index, "day", event.target.value)}
                   />
@@ -844,13 +1055,159 @@ export function AdminPanel() {
               Guardar eventos
             </button>
             <div className="success">{eventoGuardado}</div>
+            <div className="error">{fotoError}</div>
+          </div>
+        ) : null}
+      </section>
+
+      <section className="admin-section">
+        <div className="admin-section-head">
+          <h2 className="section-title admin-title">
+            Gestionar <span>novedades</span>
+          </h2>
+          <div className="admin-photo-actions">
+            <button type="button" className="ghost-btn" onClick={handleAddNews}>
+              Crear novedad
+            </button>
+            <button
+              type="button"
+              className="danger-btn"
+              onClick={handleRemoveSelectedNews}
+              disabled={newsDraft.length <= 1}
+            >
+              Eliminar novedad
+            </button>
+          </div>
+        </div>
+
+        <div className="admin-event-selector">
+          {newsDraft.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={`admin-event-chip ${item.id === selectedNews?.id ? "is-selected" : ""}`}
+              onClick={() => setSelectedNewsId(item.id)}
+            >
+              {item.title || "Novedad sin titulo"}
+            </button>
+          ))}
+        </div>
+
+        {selectedNews ? (
+          <div className="admin-event-form">
+            <div className="admin-photo-actions">
+              <button
+                type="button"
+                className="ghost-btn"
+                onClick={() => newsFileInputRef.current?.click()}
+              >
+                Subir imagen
+              </button>
+            </div>
+
+            <input
+              ref={newsFileInputRef}
+              type="file"
+              accept="image/*"
+              className="sr-only-input"
+              onChange={handleNewsLocalFileChange}
+            />
+
+            <div className="admin-form-grid">
+              <div>
+                <label htmlFor="news-title">Titulo</label>
+                <input
+                  id="news-title"
+                  type="text"
+                  value={selectedNews.title}
+                  onChange={(event) => updateSelectedNewsField("title", event.target.value)}
+                />
+              </div>
+              <div>
+                <label htmlFor="news-tag">Etiqueta</label>
+                <input
+                  id="news-tag"
+                  type="text"
+                  value={selectedNews.tag}
+                  onChange={(event) => updateSelectedNewsField("tag", event.target.value)}
+                />
+              </div>
+              <div>
+                <label htmlFor="news-date">Fecha visible</label>
+                <input
+                  id="news-date"
+                  type="text"
+                  value={selectedNews.date}
+                  onChange={(event) => updateSelectedNewsField("date", event.target.value)}
+                />
+              </div>
+              <div>
+                <label htmlFor="news-image">Imagen</label>
+                <input
+                  id="news-image"
+                  type="text"
+                  value={selectedNews.imageUrl}
+                  onChange={(event) => updateSelectedNewsField("imageUrl", event.target.value)}
+                />
+              </div>
+              <div>
+                <label htmlFor="news-alt">Texto alternativo</label>
+                <input
+                  id="news-alt"
+                  type="text"
+                  value={selectedNews.imageAlt}
+                  onChange={(event) => updateSelectedNewsField("imageAlt", event.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="admin-picker-block">
+              <strong className="admin-picker-title">Imagenes internas para novedades</strong>
+              <div className="admin-internal-grid">
+                {internalImageOptions.map((foto) => (
+                  <button
+                    key={`news-${foto.url}`}
+                    type="button"
+                    className={`admin-internal-card ${
+                      selectedNews.imageUrl === foto.url ? "is-selected" : ""
+                    }`}
+                    onClick={() => handleSelectNewsInternal(foto)}
+                  >
+                    <img src={foto.url} alt={foto.titulo} loading="lazy" />
+                    <span>{foto.titulo}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <label htmlFor="news-description">Descripcion</label>
+            <textarea
+              id="news-description"
+              value={selectedNews.description}
+              onChange={(event) => updateSelectedNewsField("description", event.target.value)}
+            />
+
+            {selectedNews.imageUrl ? (
+              <div className="admin-preview-card">
+                <strong className="admin-picker-title">Vista previa de novedad</strong>
+                <div className="admin-preview-frame">
+                  <img src={selectedNews.imageUrl} alt={selectedNews.imageAlt || "Vista previa"} loading="lazy" />
+                </div>
+              </div>
+            ) : null}
+
+            <button type="button" onClick={handleSaveNews}>
+              Guardar novedades
+            </button>
+            <div className="success">{novedadGuardada}</div>
+            <div className="error">{fotoError}</div>
           </div>
         ) : null}
       </section>
 
       <section className="admin-section">
         <h2 className="section-title admin-title">
-          Galería <span>de fotos</span>
+          Galeria <span>de fotos</span>
         </h2>
 
         <div className="admin-photo-actions">
@@ -865,7 +1222,7 @@ export function AdminPanel() {
             Buscar en la web
           </button>
           <button type="button" className="ghost-btn" onClick={resetPhotoForm}>
-            Limpiar selección
+            Limpiar seleccion
           </button>
         </div>
 
@@ -878,7 +1235,7 @@ export function AdminPanel() {
         />
 
         <div className="admin-picker-block">
-          <strong className="admin-picker-title">Imágenes internas del sitio</strong>
+          <strong className="admin-picker-title">Imagenes internas del sitio</strong>
           <div className="admin-internal-grid">
             {internalImageOptions.map((foto) => (
               <button
@@ -911,20 +1268,20 @@ export function AdminPanel() {
           }}
         />
 
-        <label htmlFor="nueva-foto-titulo">Título</label>
+        <label htmlFor="nueva-foto-titulo">Titulo</label>
         <input
           id="nueva-foto-titulo"
           type="text"
-          placeholder="Título de la foto"
+          placeholder="Titulo de la foto"
           value={fotoTitulo}
           onChange={(event) => setFotoTitulo(event.target.value)}
         />
 
-        <label htmlFor="nueva-foto-descripcion">Descripción</label>
+        <label htmlFor="nueva-foto-descripcion">Descripcion</label>
         <input
           id="nueva-foto-descripcion"
           type="text"
-          placeholder="Breve descripción"
+          placeholder="Breve descripcion"
           value={fotoDescripcion}
           onChange={(event) => setFotoDescripcion(event.target.value)}
         />
@@ -963,14 +1320,14 @@ export function AdminPanel() {
               </article>
             ))
           ) : (
-            <p className="small">No hay imágenes cargadas.</p>
+            <p className="small">No hay imagenes cargadas.</p>
           )}
         </div>
       </section>
 
       <section className="admin-section">
         <button className="ghost-btn" type="button" onClick={() => setIsAdmin(false)}>
-          Cerrar sesión
+          Cerrar sesion
         </button>
       </section>
     </div>

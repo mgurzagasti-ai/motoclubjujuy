@@ -1,8 +1,10 @@
 "use client";
 
+import { FormEvent, useState } from "react";
 import Image from "next/image";
 import { PhotoCarousel } from "@/components/photo-carousel";
-import { defaultContent } from "@/lib/site-data";
+import { ClubEvent, defaultContent } from "@/lib/site-data";
+import { hasSupabaseConfig, supabase } from "@/lib/supabase";
 import { useMotoclubContent } from "@/lib/use-motoclub-content";
 
 function buildSocialHref(label: string, value: string) {
@@ -45,10 +47,203 @@ function buildSocialHref(label: string, value: string) {
   return null;
 }
 
+function buildRegistrationHref(value?: string) {
+  const trimmedValue = value?.trim() ?? "";
+
+  if (!trimmedValue) {
+    return null;
+  }
+
+  if (/^(https?:\/\/|mailto:|tel:)/i.test(trimmedValue)) {
+    return trimmedValue;
+  }
+
+  if (trimmedValue.includes("@") && !trimmedValue.includes(" ")) {
+    return `mailto:${trimmedValue}`;
+  }
+
+  const phone = trimmedValue.replace(/\D/g, "");
+  return phone ? `https://wa.me/${phone}` : trimmedValue;
+}
+
+type EventRegistrationFormProps = {
+  event: ClubEvent;
+  compact?: boolean;
+};
+
+function EventRegistrationForm({ event, compact = false }: EventRegistrationFormProps) {
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [city, setCity] = useState("");
+  const [notes, setNotes] = useState("");
+  const [status, setStatus] = useState("");
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isOpen, setIsOpen] = useState(!compact);
+  const registrationHref = buildRegistrationHref(event.registrationHref);
+
+  const resetForm = () => {
+    setFullName("");
+    setEmail("");
+    setPhone("");
+    setCity("");
+    setNotes("");
+  };
+
+  const handleSubmit = async (submitEvent: FormEvent<HTMLFormElement>) => {
+    submitEvent.preventDefault();
+
+    if (!fullName.trim()) {
+      setError("Necesitamos al menos tu nombre para registrar la inscripcion.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError("");
+    setStatus("");
+
+    try {
+      if (!hasSupabaseConfig() || !supabase) {
+        throw new Error("Supabase todavia no esta configurado.");
+      }
+
+      const { error: insertError } = await supabase.from("event_registrations").insert({
+        event_id: event.id,
+        full_name: fullName.trim(),
+        email: email.trim() || null,
+        phone: phone.trim() || null,
+        city: city.trim() || null,
+        notes: notes.trim() || null,
+      });
+
+      if (insertError) {
+        throw insertError;
+      }
+
+      setStatus("Inscripcion enviada correctamente.");
+      resetForm();
+      if (compact) {
+        setIsOpen(false);
+      }
+    } catch (submissionError) {
+      setError(
+        submissionError instanceof Error
+          ? submissionError.message
+          : "No se pudo enviar la inscripcion."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className={`registration-form-shell ${compact ? "is-compact" : ""}`}>
+      <div className="registration-form-head">
+        <div>
+          <span className="event-mini-registration-title">{event.registrationTitle}</span>
+          <p className="small registration-copy">{event.registrationDescription}</p>
+        </div>
+        {compact ? (
+          <button
+            type="button"
+            className="btn btn-secondary registration-toggle"
+            onClick={() => setIsOpen((current) => !current)}
+          >
+            {isOpen ? "Ocultar formulario" : event.registrationLabel}
+          </button>
+        ) : null}
+      </div>
+
+      {!compact && registrationHref ? (
+        <a className="btn btn-primary registration-link-btn" href={registrationHref} target="_blank" rel="noreferrer">
+          {event.registrationLabel}
+        </a>
+      ) : null}
+
+      {isOpen ? (
+        <form className="registration-form" onSubmit={handleSubmit}>
+          <div className="registration-grid">
+            <div>
+              <label htmlFor={`full-name-${event.id}`}>Nombre completo</label>
+              <input
+                id={`full-name-${event.id}`}
+                type="text"
+                value={fullName}
+                onChange={(inputEvent) => setFullName(inputEvent.target.value)}
+                placeholder="Tu nombre"
+              />
+            </div>
+            <div>
+              <label htmlFor={`email-${event.id}`}>Email</label>
+              <input
+                id={`email-${event.id}`}
+                type="email"
+                value={email}
+                onChange={(inputEvent) => setEmail(inputEvent.target.value)}
+                placeholder="mail@ejemplo.com"
+              />
+            </div>
+            <div>
+              <label htmlFor={`phone-${event.id}`}>Telefono</label>
+              <input
+                id={`phone-${event.id}`}
+                type="text"
+                value={phone}
+                onChange={(inputEvent) => setPhone(inputEvent.target.value)}
+                placeholder="+54 9 ..."
+              />
+            </div>
+            <div>
+              <label htmlFor={`city-${event.id}`}>Ciudad</label>
+              <input
+                id={`city-${event.id}`}
+                type="text"
+                value={city}
+                onChange={(inputEvent) => setCity(inputEvent.target.value)}
+                placeholder="Tu ciudad"
+              />
+            </div>
+          </div>
+
+          <label htmlFor={`notes-${event.id}`}>Mensaje o comentario</label>
+          <textarea
+            id={`notes-${event.id}`}
+            value={notes}
+            onChange={(inputEvent) => setNotes(inputEvent.target.value)}
+            placeholder="Contanos si venis con grupo, moto club, consultas, etc."
+          />
+
+          <div className="registration-actions">
+            <button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Enviando..." : "Enviar inscripcion"}
+            </button>
+            {compact && registrationHref ? (
+              <a
+                className="btn btn-secondary registration-link-btn"
+                href={registrationHref}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Contacto directo
+              </a>
+            ) : null}
+          </div>
+
+          {error ? <div className="error">{error}</div> : null}
+          {status ? <div className="success">{status}</div> : null}
+        </form>
+      ) : null}
+    </div>
+  );
+}
+
 export function PublicSections() {
   const { content } = useMotoclubContent();
   const featuredEvent = content.events[0] ?? defaultContent.events[0];
   const extraEvents = content.events.slice(1);
+  const novedades = content.novedades.length ? content.novedades : defaultContent.novedades;
+  const registrationHref = buildRegistrationHref(featuredEvent.registrationHref);
 
   return (
     <>
@@ -64,9 +259,16 @@ export function PublicSections() {
               <a className="btn btn-primary" href="#evento">
                 Ver evento
               </a>
-              <a className="btn btn-secondary" href="#quienes">
-                Conocer el club
-              </a>
+              {registrationHref ? (
+                <a
+                  className="btn btn-secondary"
+                  href={registrationHref}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {featuredEvent.registrationLabel}
+                </a>
+              ) : null}
             </div>
           </div>
 
@@ -152,30 +354,57 @@ export function PublicSections() {
           </figure>
         </div>
 
+        <div className="section-block registration-shell">
+          <article className="panel registration-panel">
+            <EventRegistrationForm event={featuredEvent} />
+          </article>
+        </div>
+
         {extraEvents.length ? (
           <div className="section-block">
-            <h3 className="subsection-title">Más eventos cargados</h3>
+            <h3 className="subsection-title">Mas eventos cargados</h3>
             <div className="event-card-grid">
               {extraEvents.map((event) => (
                 <article className="event-mini-card" key={event.id}>
                   <div className="event-mini-card-image">
-                    <Image
-                      src={event.posterUrl}
-                      alt={event.posterAlt}
-                      width={500}
-                      height={500}
-                    />
+                    <Image src={event.posterUrl} alt={event.posterAlt} width={500} height={500} />
                   </div>
                   <div className="event-mini-card-copy">
                     <strong>{event.name}</strong>
                     <span>{event.badgeDate}</span>
                     <p className="small">{event.badgeLocation}</p>
+                    <div className="event-mini-registration">
+                      <EventRegistrationForm event={event} compact />
+                    </div>
                   </div>
                 </article>
               ))}
             </div>
           </div>
         ) : null}
+      </section>
+
+      <section id="novedades" className="page active-page">
+        <h2 className="section-title">
+          Ultimas <span>novedades</span>
+        </h2>
+        <div className="news-grid">
+          {novedades.map((item) => (
+            <article className="news-card" key={item.id}>
+              <div className="news-card-image">
+                <Image src={item.imageUrl} alt={item.imageAlt} width={900} height={700} />
+              </div>
+              <div className="news-card-copy">
+                <div className="news-card-meta">
+                  <span>{item.tag}</span>
+                  <span>{item.date}</span>
+                </div>
+                <strong>{item.title}</strong>
+                <p>{item.description}</p>
+              </div>
+            </article>
+          ))}
+        </div>
       </section>
 
       <section id="quienes" className="page active-page">

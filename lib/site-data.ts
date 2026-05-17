@@ -15,6 +15,16 @@ export type EventDay = {
   detail: string;
 };
 
+export type NewsItem = {
+  id: string;
+  title: string;
+  tag: string;
+  date: string;
+  description: string;
+  imageUrl: string;
+  imageAlt: string;
+};
+
 export type ClubEvent = {
   id: string;
   name: string;
@@ -38,12 +48,17 @@ export type ClubEvent = {
   dayItems: EventDay[];
   socialItems: InfoItem[];
   contactItems: InfoItem[];
+  registrationTitle: string;
+  registrationDescription: string;
+  registrationHref: string;
+  registrationLabel: string;
 };
 
 export type MotoclubContent = {
   quienes: string;
   fotos: MotoPhoto[];
   events: ClubEvent[];
+  novedades: NewsItem[];
 };
 
 export const storageKey = "motoclub_data";
@@ -60,6 +75,63 @@ export const internalImageOptions: MotoPhoto[] = [
     descripcion: "Identidad visual del club.",
   },
 ];
+
+export function normalizeEvent(event: Partial<ClubEvent> | undefined, index = 0): ClubEvent {
+  const fallbackEvent = createDefaultEvent();
+
+  return {
+    ...fallbackEvent,
+    ...event,
+    id: event?.id || `event-restored-${index}`,
+    metaItems: Array.isArray(event?.metaItems) ? event.metaItems : fallbackEvent.metaItems,
+    highlightItems: Array.isArray(event?.highlightItems)
+      ? event.highlightItems
+      : fallbackEvent.highlightItems,
+    dayItems: Array.isArray(event?.dayItems) ? event.dayItems : fallbackEvent.dayItems,
+    socialItems: Array.isArray(event?.socialItems) ? event.socialItems : fallbackEvent.socialItems,
+    contactItems: Array.isArray(event?.contactItems)
+      ? event.contactItems
+      : fallbackEvent.contactItems,
+  };
+}
+
+export function normalizeNewsItem(item: Partial<NewsItem> | undefined, index = 0): NewsItem {
+  const fallbackNews = createDefaultNewsItem();
+
+  return {
+    ...fallbackNews,
+    ...item,
+    id: item?.id || `news-restored-${index}`,
+  };
+}
+
+export function normalizeContent(parsed: Partial<MotoclubContent> | null | undefined): MotoclubContent {
+  return {
+    quienes: parsed?.quienes || defaultContent.quienes,
+    fotos: Array.isArray(parsed?.fotos) ? parsed!.fotos : defaultContent.fotos,
+    events:
+      Array.isArray(parsed?.events) && parsed.events.length
+        ? parsed.events.map((event, index) => normalizeEvent(event, index))
+        : defaultContent.events,
+    novedades:
+      Array.isArray(parsed?.novedades) && parsed.novedades.length
+        ? parsed.novedades.map((item, index) => normalizeNewsItem(item, index))
+        : defaultContent.novedades,
+  };
+}
+
+export function createDefaultNewsItem(): NewsItem {
+  return {
+    id: `news-${Date.now()}`,
+    title: "Nueva rodada anunciada",
+    tag: "Novedad principal",
+    date: "Mayo 2026",
+    description:
+      "Compartimos la agenda del club con nuevas salidas, encuentros y actividades para toda la comunidad motera.",
+    imageUrl: "/assets/evento-motoencuentro.jpeg",
+    imageAlt: "Afiche de actividad de Moto Club Jujuy",
+  };
+}
 
 export function createDefaultEvent(): ClubEvent {
   return {
@@ -156,6 +228,11 @@ export function createDefaultEvent(): ClubEvent {
         value: "Internacional - Moto viajeros - Multimarcas",
       },
     ],
+    registrationTitle: "Inscripción abierta",
+    registrationDescription:
+      "Reservá tu lugar para el encuentro y recibí la información principal de acreditación, costos y puntos de salida.",
+    registrationHref: "https://wa.me/5493880000000",
+    registrationLabel: "Inscribirme ahora",
   };
 }
 
@@ -166,4 +243,5 @@ export const defaultContent: MotoclubContent = {
   `,
   fotos: internalImageOptions,
   events: [createDefaultEvent()],
+  novedades: [createDefaultNewsItem()],
 };

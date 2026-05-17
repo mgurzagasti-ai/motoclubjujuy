@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { defaultContent, MotoclubContent, storageKey } from "@/lib/site-data";
+import { defaultContent, MotoclubContent, normalizeContent, storageKey } from "@/lib/site-data";
+import { hasSupabaseConfig, supabase } from "@/lib/supabase";
 
 function getBrowserStorage(): Storage | null {
   if (typeof window === "undefined") {
@@ -31,15 +32,7 @@ function readStoredContent(): MotoclubContent {
 
   try {
     const parsed = JSON.parse(stored) as Partial<MotoclubContent>;
-
-    return {
-      quienes: parsed.quienes || defaultContent.quienes,
-      fotos: Array.isArray(parsed.fotos) ? parsed.fotos : defaultContent.fotos,
-      events:
-        Array.isArray(parsed.events) && parsed.events.length
-          ? parsed.events
-          : defaultContent.events,
-    };
+    return normalizeContent(parsed);
   } catch {
     return defaultContent;
   }
@@ -49,6 +42,44 @@ export function useMotoclubContent() {
   const [content, setContent] = useState<MotoclubContent>(defaultContent);
   const [cloudinaryEnabled, setCloudinaryEnabled] = useState(false);
   const cloudinaryEnabledRef = useRef(false);
+  const [contentSource, setContentSource] = useState<"local" | "supabase">("local");
+
+  const refreshSupabaseContent = async () => {
+    if (!hasSupabaseConfig() || !supabase) {
+      return false;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("site_content")
+        .select("quienes, events, novedades")
+        .eq("slug", "main")
+        .single();
+
+      if (error || !data) {
+        throw error;
+      }
+
+      const nextContent = normalizeContent({
+        quienes: data.quienes,
+        events: data.events,
+        novedades: data.novedades,
+        fotos: readStoredContent().fotos,
+      });
+
+      setContent((current) => ({
+        ...current,
+        quienes: nextContent.quienes,
+        events: nextContent.events,
+        novedades: nextContent.novedades,
+      }));
+      setContentSource("supabase");
+      return true;
+    } catch {
+      setContentSource("local");
+      return false;
+    }
+  };
 
   const refreshPhotos = async () => {
     try {
@@ -69,7 +100,10 @@ export function useMotoclubContent() {
 
       if (!enabled) {
         const localContent = readStoredContent();
-        setContent(localContent);
+        setContent((current) => ({
+          ...current,
+          fotos: localContent.fotos,
+        }));
         return;
       }
 
@@ -81,7 +115,10 @@ export function useMotoclubContent() {
       const localContent = readStoredContent();
       cloudinaryEnabledRef.current = false;
       setCloudinaryEnabled(false);
-      setContent(localContent);
+      setContent((current) => ({
+        ...current,
+        fotos: localContent.fotos,
+      }));
     }
   };
 
@@ -92,11 +129,14 @@ export function useMotoclubContent() {
       setContent((current) => ({
         quienes: localContent.quienes,
         events: localContent.events,
+        novedades: localContent.novedades,
         fotos: cloudinaryEnabledRef.current ? current.fotos : localContent.fotos,
       }));
+      setContentSource("local");
     };
 
     syncFromStorage();
+    void refreshSupabaseContent();
     void refreshPhotos();
     window.addEventListener("storage", syncFromStorage);
 
@@ -109,12 +149,14 @@ export function useMotoclubContent() {
     const localSnapshot = {
       quienes: nextContent.quienes,
       events: nextContent.events,
+      novedades: nextContent.novedades,
       fotos: cloudinaryEnabledRef.current ? [] : nextContent.fotos,
     };
 
     setContent((current) => ({
       quienes: nextContent.quienes,
       events: nextContent.events,
+      novedades: nextContent.novedades,
       fotos: cloudinaryEnabledRef.current ? current.fotos : nextContent.fotos,
     }));
 
@@ -127,5 +169,7 @@ export function useMotoclubContent() {
     saveContent,
     cloudinaryEnabled,
     refreshPhotos,
+    refreshSupabaseContent,
+    contentSource,
   };
 }
