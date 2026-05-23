@@ -23,16 +23,29 @@ export async function PUT(request: Request) {
   }
 
   const nextContent = normalizeContent((payload.content ?? null) as Parameters<typeof normalizeContent>[0]);
+  const fullPayload = {
+    slug: "main",
+    quienes: nextContent.quienes,
+    fotos: nextContent.fotos,
+    events: nextContent.events,
+    novedades: nextContent.novedades,
+  };
 
-  const { error } = await admin.from("site_content").upsert(
-    {
-      slug: "main",
-      quienes: nextContent.quienes,
-      events: nextContent.events,
-      novedades: nextContent.novedades,
-    },
-    { onConflict: "slug" }
-  );
+  let { error } = await admin.from("site_content").upsert(fullPayload, { onConflict: "slug" });
+
+  if (error?.message.includes("Could not find the 'fotos' column")) {
+    const fallbackResult = await admin.from("site_content").upsert(
+      {
+        slug: "main",
+        quienes: nextContent.quienes,
+        events: nextContent.events,
+        novedades: nextContent.novedades,
+      },
+      { onConflict: "slug" }
+    );
+
+    error = fallbackResult.error;
+  }
 
   if (error) {
     return NextResponse.json(

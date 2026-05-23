@@ -6,7 +6,7 @@
     "dev": "node scripts/run-next.cjs dev -p 3005",
     "build": "next build",
     "start": "node scripts/run-next.cjs start -p 3005",
-    "lint": "next lint"
+    "lint": "eslint ."
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",

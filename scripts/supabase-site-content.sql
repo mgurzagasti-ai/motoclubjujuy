@@ -1,15 +1,31 @@
 create table if not exists public.site_content (
   slug text primary key,
   quienes text not null,
+  fotos jsonb not null default '[]'::jsonb,
   events jsonb not null default '[]'::jsonb,
   novedades jsonb not null default '[]'::jsonb,
   updated_at timestamptz not null default now()
 );
 
-insert into public.site_content (slug, quienes, events, novedades)
+alter table public.site_content
+add column if not exists fotos jsonb not null default '[]'::jsonb;
+
+insert into public.site_content (slug, quienes, fotos, events, novedades)
 values (
   'main',
   '<p>Moto Club Jujuy es una comunidad motera que une amistad, aventura y compromiso con la ruta. Nuestro nuevo perfil visual refleja lo que somos: identidad jujeña, pasión por viajar y una familia abierta a todas las marcas.</p><p>Durante el año organizamos salidas, encuentros y recorridos por paisajes únicos del norte argentino. Hoy estamos enfocados en el 6 Motoencuentro Internacional, una convocatoria pensada para recibir a motoviajeros de toda la región.</p>',
+  '[
+    {
+      "url": "/assets/evento-motoencuentro.jpeg",
+      "titulo": "Afiche oficial del 6 Motoencuentro Internacional",
+      "descripcion": "Nueva difusion del evento 2026."
+    },
+    {
+      "url": "/assets/logo-motoclub.jpeg",
+      "titulo": "Logo oficial Moto Club Jujuy",
+      "descripcion": "Identidad visual del club."
+    }
+  ]'::jsonb,
   '[
     {
       "id": "event-main",

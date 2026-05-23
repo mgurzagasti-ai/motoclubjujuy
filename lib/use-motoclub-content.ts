@@ -52,7 +52,7 @@ export function useMotoclubContent() {
     try {
       const { data, error } = await supabase
         .from("site_content")
-        .select("quienes, events, novedades")
+        .select("quienes, fotos, events, novedades")
         .eq("slug", "main")
         .single();
 
@@ -62,17 +62,12 @@ export function useMotoclubContent() {
 
       const nextContent = normalizeContent({
         quienes: data.quienes,
+        fotos: data.fotos,
         events: data.events,
         novedades: data.novedades,
-        fotos: readStoredContent().fotos,
       });
 
-      setContent((current) => ({
-        ...current,
-        quienes: nextContent.quienes,
-        events: nextContent.events,
-        novedades: nextContent.novedades,
-      }));
+      setContent(nextContent);
       setContentSource("supabase");
       return true;
     } catch {
@@ -98,27 +93,45 @@ export function useMotoclubContent() {
       cloudinaryEnabledRef.current = enabled;
       setCloudinaryEnabled(enabled);
 
+      if (!hasSupabaseConfig() || !supabase) {
+        if (!enabled) {
+          const localContent = readStoredContent();
+          setContent((current) => ({
+            ...current,
+            fotos: localContent.fotos,
+          }));
+          return;
+        }
+
+        setContent((current) => ({
+          ...current,
+          fotos: [...defaultContent.fotos, ...(payload.photos || [])],
+        }));
+        return;
+      }
+
       if (!enabled) {
+        const localContent = readStoredContent();
+        setContent((current) =>
+          current.fotos.length
+            ? current
+            : {
+                ...current,
+                fotos: localContent.fotos,
+              }
+        );
+        return;
+      }
+    } catch {
+      cloudinaryEnabledRef.current = false;
+      setCloudinaryEnabled(false);
+      if (!hasSupabaseConfig() || !supabase) {
         const localContent = readStoredContent();
         setContent((current) => ({
           ...current,
           fotos: localContent.fotos,
         }));
-        return;
       }
-
-      setContent((current) => ({
-        ...current,
-        fotos: [...defaultContent.fotos, ...(payload.photos || [])],
-      }));
-    } catch {
-      const localContent = readStoredContent();
-      cloudinaryEnabledRef.current = false;
-      setCloudinaryEnabled(false);
-      setContent((current) => ({
-        ...current,
-        fotos: localContent.fotos,
-      }));
     }
   };
 
@@ -130,7 +143,7 @@ export function useMotoclubContent() {
         quienes: localContent.quienes,
         events: localContent.events,
         novedades: localContent.novedades,
-        fotos: cloudinaryEnabledRef.current ? current.fotos : localContent.fotos,
+        fotos: current.fotos.length ? current.fotos : localContent.fotos,
       }));
       setContentSource("local");
     };
@@ -150,15 +163,15 @@ export function useMotoclubContent() {
       quienes: nextContent.quienes,
       events: nextContent.events,
       novedades: nextContent.novedades,
-      fotos: cloudinaryEnabledRef.current ? [] : nextContent.fotos,
+      fotos: nextContent.fotos,
     };
 
-    setContent((current) => ({
+    setContent({
       quienes: nextContent.quienes,
       events: nextContent.events,
       novedades: nextContent.novedades,
-      fotos: cloudinaryEnabledRef.current ? current.fotos : nextContent.fotos,
-    }));
+      fotos: nextContent.fotos,
+    });
 
     const storage = getBrowserStorage();
     storage?.setItem(storageKey, JSON.stringify(localSnapshot));

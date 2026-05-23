@@ -706,10 +706,23 @@ img[data-nimg] {
   box-shadow: var(--shadow);
 }
 
+.news-card-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 4 / 5;
+  padding: 0.75rem 0.75rem 0;
+  background:
+    radial-gradient(circle at top, rgba(255, 207, 64, 0.08), transparent 55%),
+    rgba(255, 255, 255, 0.02);
+}
+
 .news-card-image img {
   width: 100%;
-  aspect-ratio: 16 / 11;
-  object-fit: cover;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  border-radius: 18px;
 }
 
 .news-card-copy {
@@ -1003,6 +1016,25 @@ img[data-nimg] {
   line-height: 1.6;
 }
 
+.admin-simple-note {
+  padding: 1rem;
+  margin-bottom: 1rem;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+}
+
+.admin-simple-note strong {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--gold);
+}
+
+.admin-simple-note p {
+  margin: 0;
+}
+
 label {
   display: block;
   margin-bottom: 0.4rem;
@@ -1058,6 +1090,39 @@ button {
 .success {
   margin-top: 0.5rem;
   color: #89e6b3;
+}
+
+.admin-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(6px);
+}
+
+.admin-modal-card {
+  width: min(460px, 100%);
+  padding: 1.5rem;
+  text-align: center;
+  background: #111;
+  border: 1px solid rgba(255, 207, 64, 0.22);
+  border-radius: 24px;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.45);
+}
+
+.admin-modal-card strong {
+  display: block;
+  margin-bottom: 0.55rem;
+  color: var(--gold-strong);
+  font-size: 1.2rem;
+}
+
+.admin-modal-card p {
+  margin-bottom: 1rem;
+  color: var(--muted);
 }
 
 .admin-gallery {

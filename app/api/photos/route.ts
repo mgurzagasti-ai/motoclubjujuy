@@ -50,6 +50,11 @@ export async function GET() {
 
   if (!response.ok) {
     const detail = await response.text();
+    const folderMissing = detail.includes("Folder doesn't exist");
+
+    if (folderMissing) {
+      return NextResponse.json({ enabled: true, photos: [] });
+    }
 
     return NextResponse.json(
       {

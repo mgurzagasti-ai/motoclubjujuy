@@ -33,6 +33,45 @@ function fileToDataUrl(file: File) {
   });
 }
 
+function imageFileToSizedDataUrl(file: File, maxWidth = 1600, quality = 0.82) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      if (typeof reader.result !== "string") {
+        reject(new Error("No se pudo leer el archivo."));
+        return;
+      }
+
+      const image = new Image();
+      image.onload = () => {
+        const scale = Math.min(1, maxWidth / image.width);
+        const targetWidth = Math.max(1, Math.round(image.width * scale));
+        const targetHeight = Math.max(1, Math.round(image.height * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+
+        const context = canvas.getContext("2d");
+
+        if (!context) {
+          reject(new Error("No se pudo preparar la imagen."));
+          return;
+        }
+
+        context.drawImage(image, 0, 0, targetWidth, targetHeight);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+
+      image.onerror = () => reject(new Error("No se pudo preparar la imagen."));
+      image.src = reader.result;
+    };
+
+    reader.onerror = () => reject(new Error("No se pudo leer el archivo."));
+    reader.readAsDataURL(file);
+  });
+}
+
 function createBlankInfoItem(): InfoItem {
   return { label: "", value: "" };
 }
@@ -61,6 +100,9 @@ export function AdminPanel() {
   const [fotoError, setFotoError] = useState("");
   const [eventoGuardado, setEventoGuardado] = useState("");
   const [novedadGuardada, setNovedadGuardada] = useState("");
+  const [newsError, setNewsError] = useState("");
+  const [saveModalMessage, setSaveModalMessage] = useState("");
+  const [isUploadingNewsImage, setIsUploadingNewsImage] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -104,6 +146,48 @@ export function AdminPanel() {
   );
   const newsPreviewItems = useMemo(() => sortNewsNewestFirst(newsDraft), [newsDraft]);
 
+  const formatNewsDate = (createdAt: string) => {
+    const parsed = new Date(createdAt);
+
+    if (Number.isNaN(parsed.getTime())) {
+      return "Sin fecha";
+    }
+
+    return parsed.toLocaleDateString("es-AR", {
+      month: "long",
+      year: "numeric",
+    });
+  };
+
+  const buildNewsTitle = (description: string) => {
+    const normalized = description.replace(/\s+/g, " ").trim();
+
+    if (!normalized) {
+      return "Nueva novedad";
+    }
+
+    if (normalized.length <= 56) {
+      return normalized;
+    }
+
+    return `${normalized.slice(0, 53).trimEnd()}...`;
+  };
+
+  const buildNewsSnapshot = () =>
+    sortNewsNewestFirst(
+      newsDraft.map((item, index) => ({
+        ...item,
+        id: item.id || `news-restored-${index}`,
+        createdAt: item.createdAt || new Date().toISOString(),
+        title: buildNewsTitle(item.description),
+        tag: "Novedad",
+        date: item.date.trim() || formatNewsDate(item.createdAt || new Date().toISOString()),
+        description: item.description.trim(),
+        imageUrl: item.imageUrl.trim(),
+        imageAlt: item.imageAlt.trim() || "Imagen de la novedad",
+      }))
+    );
+
   const resetPhotoForm = () => {
     if (photoPreviewUrlRef.current) {
       URL.revokeObjectURL(photoPreviewUrlRef.current);
@@ -126,6 +210,10 @@ export function AdminPanel() {
     window.setTimeout(() => setter(""), 2200);
   };
 
+  const openSaveModal = (message: string) => {
+    setSaveModalMessage(message);
+  };
+
   const persistContent = async (nextSnapshot: typeof content) => {
     const response = await fetch("/api/site-content", {
       method: "PUT",
@@ -139,10 +227,16 @@ export function AdminPanel() {
       }),
     });
 
-    const payload = (await response.json()) as { error?: string; content?: typeof content };
+    const payload = (await response.json()) as {
+      error?: string;
+      detail?: string;
+      content?: typeof content;
+    };
 
     if (!response.ok) {
-      throw new Error(payload.error || "No se pudo guardar el contenido.");
+      throw new Error(
+        payload.detail ? `${payload.error || "No se pudo guardar el contenido."} ${payload.detail}` : payload.error || "No se pudo guardar el contenido."
+      );
     }
 
     saveContent(payload.content || nextSnapshot);
@@ -181,10 +275,10 @@ export function AdminPanel() {
   const handleGuardarQuienes = async () => {
     try {
       await persistContent({
-      ...content,
-      quienes,
-      events: eventsDraft,
-      novedades: newsDraft,
+        ...content,
+        quienes,
+        events: eventsDraft,
+        novedades: newsDraft,
       });
       flashMessage(setTextoGuardado, "Texto actualizado correctamente.");
     } catch (saveFailure) {
@@ -231,14 +325,6 @@ export function AdminPanel() {
     }
   };
 
-  const handleSelectNewsInternal = (foto: MotoPhoto) => {
-    updateSelectedNews((item) => ({
-      ...item,
-      imageUrl: foto.url,
-      imageAlt: foto.titulo,
-    }));
-  };
-
   const handleNewsLocalFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
@@ -247,16 +333,52 @@ export function AdminPanel() {
     }
 
     try {
-      const previewUrl = await fileToDataUrl(file);
+      setIsUploadingNewsImage(true);
+      let imageUrl = "";
+
+      if (cloudinaryEnabled) {
+        const body = new FormData();
+        body.set("title", selectedNews.title.trim() || file.name.replace(/\.[^.]+$/, ""));
+        body.set("description", selectedNews.description.trim());
+        body.set("file", file);
+
+        const response = await fetch("/api/photos", {
+          method: "POST",
+          body,
+        });
+
+        const payload = (await response.json()) as {
+          error?: string;
+          photo?: MotoPhoto;
+        };
+
+        if (!response.ok || !payload.photo?.url) {
+          throw new Error(payload.error || "No se pudo subir la imagen.");
+        }
+
+        imageUrl = payload.photo.url;
+      } else {
+        imageUrl = await imageFileToSizedDataUrl(file);
+
+        if (imageUrl.length > 1_500_000) {
+          throw new Error(
+            "La imagen sigue siendo muy pesada para guardar en Supabase. Usa una mas liviana o configura Cloudinary."
+          );
+        }
+      }
+
       updateSelectedNews((item) => ({
         ...item,
-        imageUrl: previewUrl,
+        imageUrl,
         imageAlt: item.imageAlt || file.name.replace(/\.[^.]+$/, ""),
       }));
-      setFotoError("");
-    } catch {
-      setFotoError("No se pudo cargar la imagen para la novedad.");
+      setNewsError("");
+    } catch (error) {
+      setNewsError(
+        error instanceof Error ? error.message : "No se pudo cargar la imagen para la novedad."
+      );
     } finally {
+      setIsUploadingNewsImage(false);
       if (newsFileInputRef.current) {
         newsFileInputRef.current.value = "";
       }
@@ -270,20 +392,8 @@ export function AdminPanel() {
     window.open(`https://www.google.com/search?tbm=isch&q=${searchTerm}`, "_blank");
   };
 
-  const handleEliminarFoto = (index: number) => {
-    const confirmed = window.confirm("Eliminar esta imagen de la galeria?");
-    if (!confirmed) {
-      return;
-    }
-
-    saveContent({
-      ...content,
-      quienes,
-      events: eventsDraft,
-      novedades: newsDraft,
-      fotos: content.fotos.filter((_, fotoIndex) => fotoIndex !== index),
-    });
-  };
+  const buildPhotosWithoutIndex = (index: number) =>
+    content.fotos.filter((_, fotoIndex) => fotoIndex !== index);
 
   const handleAgregarFotoActual = async () => {
     const trimmedUrl = fotoUrl.trim();
@@ -318,15 +428,21 @@ export function AdminPanel() {
           body,
         });
 
-        const payload = (await response.json()) as { error?: string };
+        const payload = (await response.json()) as { error?: string; photo?: MotoPhoto };
 
-        if (!response.ok) {
+        if (!response.ok || !payload.photo) {
           throw new Error(payload.error || "No se pudo subir la imagen.");
         }
 
-        await refreshPhotos();
+        await persistContent({
+          ...content,
+          quienes,
+          events: eventsDraft,
+          novedades: newsDraft,
+          fotos: [...content.fotos, payload.photo],
+        });
         resetPhotoForm();
-        flashMessage(setFotoGuardada, "Imagen subida correctamente a Cloudinary.");
+        flashMessage(setFotoGuardada, "Imagen subida a Cloudinary y guardada en Supabase.");
       } catch (error) {
         setFotoError(error instanceof Error ? error.message : "No se pudo subir la imagen.");
       } finally {
@@ -338,23 +454,27 @@ export function AdminPanel() {
 
     const finalUrl = selectedFile ? await fileToDataUrl(selectedFile) : trimmedUrl;
 
-    saveContent({
-      ...content,
-      quienes,
-      events: eventsDraft,
-      novedades: newsDraft,
-      fotos: [
-        ...content.fotos,
-        {
-          url: finalUrl,
-          titulo: fotoTitulo.trim() || "Nueva imagen",
-          descripcion: fotoDescripcion.trim(),
-        },
-      ],
-    });
+    try {
+      await persistContent({
+        ...content,
+        quienes,
+        events: eventsDraft,
+        novedades: newsDraft,
+        fotos: [
+          ...content.fotos,
+          {
+            url: finalUrl,
+            titulo: fotoTitulo.trim() || "Nueva imagen",
+            descripcion: fotoDescripcion.trim(),
+          },
+        ],
+      });
 
-    resetPhotoForm();
-    flashMessage(setFotoGuardada, "Imagen agregada correctamente.");
+      resetPhotoForm();
+      flashMessage(setFotoGuardada, "Imagen agregada y guardada en Supabase.");
+    } catch (error) {
+      setFotoError(error instanceof Error ? error.message : "No se pudo guardar la imagen.");
+    }
   };
 
   const handleEliminarFotoActual = async (foto: MotoPhoto, index: number) => {
@@ -379,7 +499,14 @@ export function AdminPanel() {
           throw new Error(payload.error || "No se pudo eliminar la imagen.");
         }
 
-        await refreshPhotos();
+        await persistContent({
+          ...content,
+          quienes,
+          events: eventsDraft,
+          novedades: newsDraft,
+          fotos: buildPhotosWithoutIndex(index),
+        });
+        flashMessage(setFotoGuardada, "Imagen eliminada correctamente.");
         return;
       } catch (error) {
         setFotoError(error instanceof Error ? error.message : "No se pudo eliminar la imagen.");
@@ -387,7 +514,18 @@ export function AdminPanel() {
       }
     }
 
-    handleEliminarFoto(index);
+    try {
+      await persistContent({
+        ...content,
+        quienes,
+        events: eventsDraft,
+        novedades: newsDraft,
+        fotos: buildPhotosWithoutIndex(index),
+      });
+      flashMessage(setFotoGuardada, "Imagen eliminada correctamente.");
+    } catch (error) {
+      setFotoError(error instanceof Error ? error.message : "No se pudo eliminar la imagen.");
+    }
   };
 
   const updateSelectedEvent = (updater: (event: ClubEvent) => ClubEvent) => {
@@ -519,8 +657,9 @@ export function AdminPanel() {
 
   const handleAddNews = () => {
     const newItem = createDefaultNewsItem();
-    setNewsDraft((current) => [...current, newItem]);
+    setNewsDraft((current) => [newItem, ...current]);
     setSelectedNewsId(newItem.id);
+    setNewsError("");
   };
 
   const handleRemoveSelectedNews = () => {
@@ -538,20 +677,26 @@ export function AdminPanel() {
     const nextNews = newsDraft.filter((item) => item.id !== selectedNews.id);
     setNewsDraft(nextNews);
     setSelectedNewsId(nextNews[0]?.id ?? "");
+    setNewsError("");
   };
 
   const handleSaveNews = async () => {
     try {
+      const normalizedNews = buildNewsSnapshot();
+
       await persistContent({
         ...content,
         quienes,
         events: eventsDraft,
-        novedades: newsDraft,
+        novedades: normalizedNews,
       });
+      setNewsDraft(normalizedNews);
       await refreshSupabaseContent();
       flashMessage(setNovedadGuardada, "Novedad guardada y publicada correctamente.");
+      setNewsError("");
+      openSaveModal("La novedad se guardo y publico correctamente.");
     } catch (saveFailure) {
-      setFotoError(
+      setNewsError(
         saveFailure instanceof Error ? saveFailure.message : "No se pudieron guardar las novedades."
       );
     }
@@ -592,6 +737,24 @@ export function AdminPanel() {
 
   return (
     <div className="admin-layout">
+      {saveModalMessage ? (
+        <div className="admin-modal-backdrop" role="presentation" onClick={() => setSaveModalMessage("")}>
+          <div
+            className="admin-modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="admin-save-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <strong id="admin-save-modal-title">Cambios guardados</strong>
+            <p>{saveModalMessage}</p>
+            <button type="button" onClick={() => setSaveModalMessage("")}>
+              Cerrar
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <section className="admin-section">
         <h2 className="section-title admin-title">
           Estado de <span>integracion</span>
@@ -1083,134 +1246,15 @@ export function AdminPanel() {
           </div>
         </div>
         <p className="admin-helper-text">
-          Crear novedad arma un borrador nuevo. Para que aparezca en la web, hace clic en
-          {" "}
-          Guardar y publicar novedades.
+          Carga una novedad de forma simple: crear, subir foto, escribir la descripcion y guardar.
+          Se publica arriba de todo automaticamente.
         </p>
-
-        <div className="admin-event-selector">
-          {newsDraft.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={`admin-event-chip ${item.id === selectedNews?.id ? "is-selected" : ""}`}
-              onClick={() => setSelectedNewsId(item.id)}
-            >
-              {item.title || "Novedad sin titulo"}
-            </button>
-          ))}
-        </div>
 
         {selectedNews ? (
           <div className="admin-event-form">
-            <div className="admin-photo-actions">
-              <button
-                type="button"
-                className="ghost-btn"
-                onClick={() => newsFileInputRef.current?.click()}
-              >
-                Subir imagen
-              </button>
-            </div>
-
-            <input
-              ref={newsFileInputRef}
-              type="file"
-              accept="image/*"
-              className="sr-only-input"
-              onChange={handleNewsLocalFileChange}
-            />
-
-            <div className="admin-form-grid">
-              <div>
-                <label htmlFor="news-title">Titulo</label>
-                <input
-                  id="news-title"
-                  type="text"
-                  value={selectedNews.title}
-                  onChange={(event) => updateSelectedNewsField("title", event.target.value)}
-                />
-              </div>
-              <div>
-                <label htmlFor="news-tag">Etiqueta</label>
-                <input
-                  id="news-tag"
-                  type="text"
-                  value={selectedNews.tag}
-                  onChange={(event) => updateSelectedNewsField("tag", event.target.value)}
-                />
-              </div>
-              <div>
-                <label htmlFor="news-date">Fecha visible</label>
-                <input
-                  id="news-date"
-                  type="text"
-                  value={selectedNews.date}
-                  onChange={(event) => updateSelectedNewsField("date", event.target.value)}
-                />
-              </div>
-              <div>
-                <label htmlFor="news-image">Imagen</label>
-                <input
-                  id="news-image"
-                  type="text"
-                  value={selectedNews.imageUrl}
-                  onChange={(event) => updateSelectedNewsField("imageUrl", event.target.value)}
-                />
-              </div>
-              <div>
-                <label htmlFor="news-alt">Texto alternativo</label>
-                <input
-                  id="news-alt"
-                  type="text"
-                  value={selectedNews.imageAlt}
-                  onChange={(event) => updateSelectedNewsField("imageAlt", event.target.value)}
-                />
-              </div>
-            </div>
-
-            {selectedNews.imageUrl ? (
-              <div className="admin-preview-card">
-                <strong className="admin-picker-title">Vista previa de la foto subida</strong>
-                <div className="admin-preview-frame">
-                  <img
-                    src={selectedNews.imageUrl}
-                    alt={selectedNews.imageAlt || "Vista previa"}
-                    loading="lazy"
-                  />
-                </div>
-              </div>
-            ) : null}
-
-            <div className="admin-picker-block">
-              <strong className="admin-picker-title">Imagenes internas para novedades</strong>
-              <div className="admin-internal-grid">
-                {internalImageOptions.map((foto) => (
-                  <button
-                    key={`news-${foto.url}`}
-                    type="button"
-                    className={`admin-internal-card ${
-                      selectedNews.imageUrl === foto.url ? "is-selected" : ""
-                    }`}
-                    onClick={() => handleSelectNewsInternal(foto)}
-                  >
-                    <img src={foto.url} alt={foto.titulo} loading="lazy" />
-                    <span>{foto.titulo}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <label htmlFor="news-description">Descripcion</label>
-            <textarea
-              id="news-description"
-              value={selectedNews.description}
-              onChange={(event) => updateSelectedNewsField("description", event.target.value)}
-            />
-
             <div className="admin-preview-card">
               <div className="admin-preview-head">
-                <strong className="admin-picker-title">Asi se vera en Ultimas novedades</strong>
+                <strong className="admin-picker-title">Novedades cargadas</strong>
                 <button type="button" onClick={handleSaveNews}>
                   Guardar y publicar novedades
                 </button>
@@ -1238,10 +1282,10 @@ export function AdminPanel() {
                     </div>
                     <div className="admin-news-preview-copy">
                       <div className="admin-news-preview-meta">
-                        <span>{index === 0 ? "Mas reciente" : `Posicion ${index + 1}`}</span>
-                        <span>{item.date || "Sin fecha"}</span>
+                        <span>{index === 0 ? "Se vera primero" : `Posicion ${index + 1}`}</span>
+                        <span>{item.date || "Sin fecha visible"}</span>
                       </div>
-                      <strong>{item.title || "Novedad sin titulo"}</strong>
+                      <strong>{item.title || "Nueva novedad"}</strong>
                       <p>{item.description || "Completa la descripcion para ver la tarjeta final."}</p>
                     </div>
                   </button>
@@ -1249,11 +1293,71 @@ export function AdminPanel() {
               </div>
             </div>
 
+            <div className="admin-photo-actions">
+              <button
+                type="button"
+                className="ghost-btn"
+                onClick={() => newsFileInputRef.current?.click()}
+                disabled={isUploadingNewsImage}
+              >
+                {isUploadingNewsImage ? "Subiendo imagen..." : "Subir foto de la novedad"}
+              </button>
+            </div>
+
+            <input
+              ref={newsFileInputRef}
+              type="file"
+              accept="image/*"
+              className="sr-only-input"
+              onChange={handleNewsLocalFileChange}
+            />
+
+            <div className="admin-form-grid">
+              <div className="admin-simple-note">
+                <strong>Titulo y fecha automaticos</strong>
+                <p>Se completan solos con la descripcion y la fecha de carga.</p>
+              </div>
+            </div>
+
+            {selectedNews.imageUrl ? (
+              <div className="admin-preview-card">
+                <strong className="admin-picker-title">Vista previa de la foto subida</strong>
+                <div className="admin-preview-frame">
+                  <img
+                    src={selectedNews.imageUrl}
+                    alt={selectedNews.imageAlt || "Vista previa"}
+                    loading="lazy"
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            <div className="admin-form-grid">
+              <div>
+                <label htmlFor="news-alt">Texto alternativo</label>
+                <input
+                  id="news-alt"
+                  type="text"
+                  placeholder="Ejemplo: Foto de la rodada"
+                  value={selectedNews.imageAlt}
+                  onChange={(event) => updateSelectedNewsField("imageAlt", event.target.value)}
+                />
+              </div>
+            </div>
+
+            <label htmlFor="news-description">Descripcion</label>
+            <textarea
+              id="news-description"
+              placeholder="Escribe la novedad..."
+              value={selectedNews.description}
+              onChange={(event) => updateSelectedNewsField("description", event.target.value)}
+            />
+
             <button type="button" onClick={handleSaveNews}>
               Guardar y publicar novedades
             </button>
             <div className="success">{novedadGuardada}</div>
-            <div className="error">{fotoError}</div>
+            <div className="error">{newsError}</div>
           </div>
         ) : null}
       </section>
