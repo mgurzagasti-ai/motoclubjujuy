@@ -108,6 +108,7 @@ export function AdminPanel() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const newsFileInputRef = useRef<HTMLInputElement | null>(null);
   const photoPreviewUrlRef = useRef<string | null>(null);
+  const saveModalTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     setQuienes(content.quienes);
@@ -134,6 +135,14 @@ export function AdminPanel() {
       return content.novedades[0]?.id ?? "";
     });
   }, [content.novedades]);
+
+  useEffect(() => {
+    return () => {
+      if (saveModalTimeoutRef.current) {
+        window.clearTimeout(saveModalTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const selectedEvent = useMemo(
     () => eventsDraft.find((event) => event.id === selectedEventId) ?? eventsDraft[0] ?? null,
@@ -211,7 +220,15 @@ export function AdminPanel() {
   };
 
   const openSaveModal = (message: string) => {
+    if (saveModalTimeoutRef.current) {
+      window.clearTimeout(saveModalTimeoutRef.current);
+    }
+
     setSaveModalMessage(message);
+    saveModalTimeoutRef.current = window.setTimeout(() => {
+      setSaveModalMessage("");
+      saveModalTimeoutRef.current = null;
+    }, 2200);
   };
 
   const persistContent = async (nextSnapshot: typeof content) => {
@@ -631,6 +648,7 @@ export function AdminPanel() {
         novedades: newsDraft,
       });
       flashMessage(setEventoGuardado, "Eventos actualizados correctamente.");
+      openSaveModal("El evento se guardo correctamente.");
     } catch (saveFailure) {
       setFotoError(
         saveFailure instanceof Error ? saveFailure.message : "No se pudieron guardar los eventos."
