@@ -394,7 +394,11 @@ export function PublicSections() {
           {novedades.map((item) => (
             <article className="news-card" key={item.id}>
               <div className="news-card-image">
-                <Image src={item.imageUrl} alt={item.imageAlt} width={900} height={700} />
+                {item.imageUrl ? (
+                  <Image src={item.imageUrl} alt={item.imageAlt || item.title} width={900} height={700} />
+                ) : (
+                  <div className="admin-news-preview-empty">Sin imagen</div>
+                )}
               </div>
               <div className="news-card-copy">
                 <div className="news-card-meta">

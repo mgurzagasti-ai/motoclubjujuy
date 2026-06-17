@@ -52,7 +52,7 @@ export function useMotoclubContent() {
     try {
       const { data, error } = await supabase
         .from("site_content")
-        .select("quienes, fotos, events, novedades")
+        .select("nav_items, quienes, fotos, events, novedades")
         .eq("slug", "main")
         .single();
 
@@ -61,6 +61,7 @@ export function useMotoclubContent() {
       }
 
       const nextContent = normalizeContent({
+        navItems: data.nav_items,
         quienes: data.quienes,
         fotos: data.fotos,
         events: data.events,
@@ -136,10 +137,12 @@ export function useMotoclubContent() {
   };
 
   useEffect(() => {
+    let isMounted = true;
     const syncFromStorage = () => {
       const localContent = readStoredContent();
 
       setContent((current) => ({
+        navItems: localContent.navItems,
         quienes: localContent.quienes,
         events: localContent.events,
         novedades: localContent.novedades,
@@ -149,17 +152,25 @@ export function useMotoclubContent() {
     };
 
     syncFromStorage();
-    void refreshSupabaseContent();
-    void refreshPhotos();
+    queueMicrotask(() => {
+      if (!isMounted) {
+        return;
+      }
+
+      void refreshSupabaseContent();
+      void refreshPhotos();
+    });
     window.addEventListener("storage", syncFromStorage);
 
     return () => {
+      isMounted = false;
       window.removeEventListener("storage", syncFromStorage);
     };
   }, []);
 
   const saveContent = (nextContent: MotoclubContent) => {
     const localSnapshot = {
+      navItems: nextContent.navItems,
       quienes: nextContent.quienes,
       events: nextContent.events,
       novedades: nextContent.novedades,
@@ -167,6 +178,7 @@ export function useMotoclubContent() {
     };
 
     setContent({
+      navItems: nextContent.navItems,
       quienes: nextContent.quienes,
       events: nextContent.events,
       novedades: nextContent.novedades,

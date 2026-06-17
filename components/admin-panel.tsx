@@ -4,13 +4,16 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   ClubEvent,
+  createDefaultNavItem,
   createDefaultEvent,
   createDefaultNewsItem,
   EventDay,
   InfoItem,
   internalImageOptions,
   MotoPhoto,
+  NavItem,
   NewsItem,
+  normalizeNavHref,
   sortNewsNewestFirst,
 } from "@/lib/site-data";
 import { useMotoclubContent } from "@/lib/use-motoclub-content";
@@ -81,12 +84,13 @@ function createBlankDay(): EventDay {
 }
 
 export function AdminPanel() {
-  const { content, saveContent, cloudinaryEnabled, refreshPhotos, refreshSupabaseContent, contentSource } =
+  const { content, saveContent, cloudinaryEnabled, refreshSupabaseContent, contentSource } =
     useMotoclubContent();
   const [isAdmin, setIsAdmin] = useState(false);
   const [user, setUser] = useState("");
   const [pass, setPass] = useState("");
   const [loginError, setLoginError] = useState("");
+  const [navDraft, setNavDraft] = useState<NavItem[]>(content.navItems);
   const [quienes, setQuienes] = useState(content.quienes);
   const [eventsDraft, setEventsDraft] = useState<ClubEvent[]>(content.events);
   const [newsDraft, setNewsDraft] = useState<NewsItem[]>(content.novedades);
@@ -109,32 +113,6 @@ export function AdminPanel() {
   const newsFileInputRef = useRef<HTMLInputElement | null>(null);
   const photoPreviewUrlRef = useRef<string | null>(null);
   const saveModalTimeoutRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    setQuienes(content.quienes);
-  }, [content.quienes]);
-
-  useEffect(() => {
-    setEventsDraft(content.events);
-    setSelectedEventId((currentId) => {
-      if (content.events.some((event) => event.id === currentId)) {
-        return currentId;
-      }
-
-      return content.events[0]?.id ?? "";
-    });
-  }, [content.events]);
-
-  useEffect(() => {
-    setNewsDraft(content.novedades);
-    setSelectedNewsId((currentId) => {
-      if (content.novedades.some((item) => item.id === currentId)) {
-        return currentId;
-      }
-
-      return content.novedades[0]?.id ?? "";
-    });
-  }, [content.novedades]);
 
   useEffect(() => {
     return () => {
@@ -281,6 +259,12 @@ export function AdminPanel() {
       }
 
       setIsAdmin(true);
+      setNavDraft(content.navItems);
+      setQuienes(content.quienes);
+      setEventsDraft(content.events);
+      setNewsDraft(content.novedades);
+      setSelectedEventId(content.events[0]?.id ?? "");
+      setSelectedNewsId(content.novedades[0]?.id ?? "");
       setLoginError("");
     } catch (loginFailure) {
       setLoginError(
@@ -293,6 +277,7 @@ export function AdminPanel() {
     try {
       await persistContent({
         ...content,
+        navItems: navDraft,
         quienes,
         events: eventsDraft,
         novedades: newsDraft,
@@ -412,6 +397,47 @@ export function AdminPanel() {
   const buildPhotosWithoutIndex = (index: number) =>
     content.fotos.filter((_, fotoIndex) => fotoIndex !== index);
 
+  const updateNavItem = (index: number, key: keyof NavItem, value: string) => {
+    setNavDraft((current) =>
+      current.map((item, itemIndex) => (itemIndex === index ? { ...item, [key]: value } : item))
+    );
+  };
+
+  const handleAddNavItem = () => {
+    setNavDraft((current) => {
+      const nextItem = createDefaultNavItem(current.length + 10);
+      return [nextItem, ...current];
+    });
+  };
+
+  const handleRemoveNavItem = (index: number) => {
+    setNavDraft((current) => current.filter((_, itemIndex) => itemIndex !== index));
+  };
+
+  const handleSaveNavItems = async () => {
+    try {
+      const normalizedNavItems = navDraft.map((item, index) => ({
+        ...item,
+        href: normalizeNavHref(item.href, createDefaultNavItem(index).href),
+      }));
+
+      await persistContent({
+        ...content,
+        navItems: normalizedNavItems,
+        quienes,
+        events: eventsDraft,
+        novedades: newsDraft,
+        fotos: content.fotos,
+      });
+      setNavDraft(normalizedNavItems);
+      flashMessage(setTextoGuardado, "Menu actualizado correctamente.");
+    } catch (saveFailure) {
+      setLoginError(
+        saveFailure instanceof Error ? saveFailure.message : "No se pudo guardar el menu."
+      );
+    }
+  };
+
   const handleAgregarFotoActual = async () => {
     const trimmedUrl = fotoUrl.trim();
 
@@ -453,6 +479,7 @@ export function AdminPanel() {
 
         await persistContent({
           ...content,
+          navItems: navDraft,
           quienes,
           events: eventsDraft,
           novedades: newsDraft,
@@ -474,6 +501,7 @@ export function AdminPanel() {
     try {
       await persistContent({
         ...content,
+        navItems: navDraft,
         quienes,
         events: eventsDraft,
         novedades: newsDraft,
@@ -518,6 +546,7 @@ export function AdminPanel() {
 
         await persistContent({
           ...content,
+          navItems: navDraft,
           quienes,
           events: eventsDraft,
           novedades: newsDraft,
@@ -534,6 +563,7 @@ export function AdminPanel() {
     try {
       await persistContent({
         ...content,
+        navItems: navDraft,
         quienes,
         events: eventsDraft,
         novedades: newsDraft,
@@ -643,6 +673,7 @@ export function AdminPanel() {
     try {
       await persistContent({
         ...content,
+        navItems: navDraft,
         quienes,
         events: eventsDraft,
         novedades: newsDraft,
@@ -704,6 +735,7 @@ export function AdminPanel() {
 
       await persistContent({
         ...content,
+        navItems: navDraft,
         quienes,
         events: eventsDraft,
         novedades: normalizedNews,
@@ -801,6 +833,56 @@ export function AdminPanel() {
         </button>
         <div className="success">{textoGuardado}</div>
         <div className="error">{loginError}</div>
+      </section>
+
+      <section className="admin-section">
+        <div className="admin-section-head">
+          <h2 className="section-title admin-title">
+            Gestionar <span>navbar</span>
+          </h2>
+          <div className="admin-photo-actions">
+            <button type="button" className="ghost-btn" onClick={handleAddNavItem}>
+              Agregar item
+            </button>
+          </div>
+        </div>
+        <p className="admin-helper-text">
+          Puedes cambiar el texto y el link de cada opcion del menu. Usa rutas como `/#evento`,
+          `/#contacto`, `/admin` o `/mi-nueva-pagina`. Si la ruta no existe todavia, Next mostrara
+          el 404.
+        </p>
+        <div className="admin-event-form">
+          {navDraft.map((item, index) => (
+            <div className="admin-dual-row" key={item.id}>
+              <input
+                type="text"
+                placeholder="Texto del item"
+                value={item.label}
+                onChange={(event) => updateNavItem(index, "label", event.target.value)}
+              />
+              <input
+                type="text"
+                placeholder="/ruta-nueva o /#seccion"
+                value={item.href}
+                onChange={(event) => updateNavItem(index, "href", event.target.value)}
+              />
+              <button
+                type="button"
+                className="danger-btn"
+                onClick={() => handleRemoveNavItem(index)}
+                disabled={navDraft.length <= 1}
+              >
+                Quitar
+              </button>
+            </div>
+          ))}
+
+          <button type="button" onClick={handleSaveNavItems}>
+            Guardar menu
+          </button>
+          <div className="success">{textoGuardado}</div>
+          <div className="error">{loginError}</div>
+        </div>
       </section>
 
       <section className="admin-section">

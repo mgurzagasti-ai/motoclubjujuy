@@ -1,5 +1,6 @@
 create table if not exists public.site_content (
   slug text primary key,
+  nav_items jsonb not null default '[]'::jsonb,
   quienes text not null,
   fotos jsonb not null default '[]'::jsonb,
   events jsonb not null default '[]'::jsonb,
@@ -8,11 +9,22 @@ create table if not exists public.site_content (
 );
 
 alter table public.site_content
+add column if not exists nav_items jsonb not null default '[]'::jsonb;
+
+alter table public.site_content
 add column if not exists fotos jsonb not null default '[]'::jsonb;
 
-insert into public.site_content (slug, quienes, fotos, events, novedades)
+insert into public.site_content (slug, nav_items, quienes, fotos, events, novedades)
 values (
   'main',
+  '[
+    { "id": "nav-inicio", "href": "/#inicio", "label": "Inicio" },
+    { "id": "nav-evento", "href": "/#evento", "label": "Evento 2026" },
+    { "id": "nav-novedades", "href": "/#novedades", "label": "Novedades" },
+    { "id": "nav-quienes", "href": "/#quienes", "label": "Quienes somos" },
+    { "id": "nav-fotos", "href": "/#fotos", "label": "Galeria" },
+    { "id": "nav-admin", "href": "/admin", "label": "Admin" }
+  ]'::jsonb,
   '<p>Moto Club Jujuy es una comunidad motera que une amistad, aventura y compromiso con la ruta. Nuestro nuevo perfil visual refleja lo que somos: identidad jujeña, pasión por viajar y una familia abierta a todas las marcas.</p><p>Durante el año organizamos salidas, encuentros y recorridos por paisajes únicos del norte argentino. Hoy estamos enfocados en el 6 Motoencuentro Internacional, una convocatoria pensada para recibir a motoviajeros de toda la región.</p>',
   '[
     {
@@ -73,7 +85,7 @@ values (
       ],
       "registrationTitle": "Inscripcion abierta",
       "registrationDescription": "Reserva tu lugar para el encuentro y recibi la informacion principal de acreditacion, costos y puntos de salida.",
-      "registrationHref": "https://wa.me/5493880000000",
+      "registrationHref": "https://wa.me/5493883443222",
       "registrationLabel": "Inscribirme ahora"
     }
   ]'::jsonb,

@@ -1,0 +1,29 @@
+name: Keepalive
+
+on:
+  schedule:
+    - cron: "0 */12 * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate secrets
+        run: |
+          if [ -z "${{ secrets.SITE_URL }}" ]; then
+            echo "Missing SITE_URL secret"
+            exit 1
+          fi
+
+      - name: Ping keepalive endpoint
+        env:
+          SITE_URL: ${{ secrets.SITE_URL }}
+          KEEPALIVE_TOKEN: ${{ secrets.KEEPALIVE_TOKEN }}
+        run: |
+          URL="${SITE_URL%/}/api/keepalive"
+          if [ -n "$KEEPALIVE_TOKEN" ]; then
+            URL="$URL?token=$KEEPALIVE_TOKEN"
+          fi
+
+          curl --fail --silent --show-error "$URL"

@@ -756,6 +756,39 @@ img[data-nimg] {
   border-radius: 999px;
 }
 
+.construction-page {
+  display: grid;
+  gap: 1.2rem;
+  place-items: start;
+  min-height: calc(100vh - 220px);
+  padding: clamp(2rem, 8vw, 5rem);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 32px;
+  box-shadow: var(--shadow);
+}
+
+.construction-page p {
+  max-width: 60ch;
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+
+.construction-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.9rem;
+  color: var(--gold-strong);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 207, 64, 0.28);
+  border-radius: 999px;
+}
+
 .small {
   color: var(--muted);
   font-size: 0.95rem;

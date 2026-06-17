@@ -25,6 +25,7 @@ export async function PUT(request: Request) {
   const nextContent = normalizeContent((payload.content ?? null) as Parameters<typeof normalizeContent>[0]);
   const fullPayload = {
     slug: "main",
+    nav_items: nextContent.navItems,
     quienes: nextContent.quienes,
     fotos: nextContent.fotos,
     events: nextContent.events,
@@ -33,16 +34,34 @@ export async function PUT(request: Request) {
 
   let { error } = await admin.from("site_content").upsert(fullPayload, { onConflict: "slug" });
 
-  if (error?.message.includes("Could not find the 'fotos' column")) {
-    const fallbackResult = await admin.from("site_content").upsert(
-      {
-        slug: "main",
-        quienes: nextContent.quienes,
-        events: nextContent.events,
-        novedades: nextContent.novedades,
-      },
-      { onConflict: "slug" }
-    );
+  if (error?.message.includes("Could not find")) {
+    const fallbackPayload: {
+      slug: string;
+      nav_items?: typeof nextContent.navItems;
+      quienes: string;
+      fotos?: typeof nextContent.fotos;
+      events: typeof nextContent.events;
+      novedades: typeof nextContent.novedades;
+    } = {
+      slug: "main",
+      nav_items: nextContent.navItems,
+      quienes: nextContent.quienes,
+      fotos: nextContent.fotos,
+      events: nextContent.events,
+      novedades: nextContent.novedades,
+    };
+
+    if (error.message.includes("Could not find the 'fotos' column")) {
+      delete fallbackPayload.fotos;
+    }
+
+    if (error.message.includes("Could not find the 'nav_items' column")) {
+      delete fallbackPayload.nav_items;
+    }
+
+    const fallbackResult = await admin.from("site_content").upsert(fallbackPayload, {
+      onConflict: "slug",
+    });
 
     error = fallbackResult.error;
   }

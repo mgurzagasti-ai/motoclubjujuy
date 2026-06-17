@@ -15,6 +15,12 @@ export type EventDay = {
   detail: string;
 };
 
+export type NavItem = {
+  id: string;
+  href: string;
+  label: string;
+};
+
 export type NewsItem = {
   id: string;
   createdAt: string;
@@ -56,6 +62,7 @@ export type ClubEvent = {
 };
 
 export type MotoclubContent = {
+  navItems: NavItem[];
   quienes: string;
   fotos: MotoPhoto[];
   events: ClubEvent[];
@@ -76,6 +83,56 @@ export const internalImageOptions: MotoPhoto[] = [
     descripcion: "Identidad visual del club.",
   },
 ];
+
+export const defaultNavItems: NavItem[] = [
+  { id: "nav-inicio", href: "/#inicio", label: "Inicio" },
+  { id: "nav-evento", href: "/#evento", label: "Evento 2026" },
+  { id: "nav-novedades", href: "/#novedades", label: "Novedades" },
+  { id: "nav-quienes", href: "/#quienes", label: "Quienes somos" },
+  { id: "nav-fotos", href: "/#fotos", label: "Galeria" },
+  { id: "nav-admin", href: "/admin", label: "Admin" },
+];
+
+function slugifyRouteSegment(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+export function normalizeNavHref(value: string | undefined, fallbackHref: string) {
+  const trimmedValue = value?.trim() ?? "";
+
+  if (!trimmedValue) {
+    return fallbackHref;
+  }
+
+  if (/^(https?:\/\/|mailto:|tel:)/i.test(trimmedValue)) {
+    return trimmedValue;
+  }
+
+  if (trimmedValue.startsWith("/#")) {
+    return trimmedValue;
+  }
+
+  if (trimmedValue.startsWith("#")) {
+    return `/${trimmedValue}`;
+  }
+
+  if (trimmedValue.startsWith("/")) {
+    const normalizedPath = trimmedValue
+      .split("/")
+      .map((segment, index) => (index === 0 ? "" : slugifyRouteSegment(segment)))
+      .join("/");
+
+    return normalizedPath === "/" ? fallbackHref : normalizedPath;
+  }
+
+  const slug = slugifyRouteSegment(trimmedValue);
+  return slug ? `/${slug}` : fallbackHref;
+}
 
 export function normalizeEvent(event: Partial<ClubEvent> | undefined, index = 0): ClubEvent {
   const fallbackEvent = createDefaultEvent();
@@ -111,6 +168,32 @@ export function normalizeNewsItem(item: Partial<NewsItem> | undefined, index = 0
   };
 }
 
+export function createDefaultNavItem(index = 0): NavItem {
+  const defaultItem = defaultNavItems[index];
+
+  if (defaultItem) {
+    return defaultItem;
+  }
+
+  return {
+    id: `nav-${Date.now()}-${index}`,
+    href: "/nueva-pagina",
+    label: "Nuevo item",
+  };
+}
+
+export function normalizeNavItem(item: Partial<NavItem> | undefined, index = 0): NavItem {
+  const fallbackItem = createDefaultNavItem(index);
+
+  return {
+    ...fallbackItem,
+    ...item,
+    id: item?.id || `nav-restored-${index}`,
+    href: normalizeNavHref(item?.href, fallbackItem.href),
+    label: item?.label?.trim() || fallbackItem.label,
+  };
+}
+
 export function sortNewsNewestFirst(items: NewsItem[]): NewsItem[] {
   return [...items].sort((a, b) => {
     const timeA = Date.parse(a.createdAt || "");
@@ -134,6 +217,10 @@ export function sortNewsNewestFirst(items: NewsItem[]): NewsItem[] {
 
 export function normalizeContent(parsed: Partial<MotoclubContent> | null | undefined): MotoclubContent {
   return {
+    navItems:
+      Array.isArray(parsed?.navItems) && parsed.navItems.length
+        ? parsed.navItems.map((item, index) => normalizeNavItem(item, index))
+        : defaultContent.navItems,
     quienes: parsed?.quienes || defaultContent.quienes,
     fotos: Array.isArray(parsed?.fotos) ? parsed!.fotos : defaultContent.fotos,
     events:
@@ -258,12 +345,13 @@ export function createDefaultEvent(): ClubEvent {
     registrationTitle: "Inscripción abierta",
     registrationDescription:
       "Reservá tu lugar para el encuentro y recibí la información principal de acreditación, costos y puntos de salida.",
-    registrationHref: "https://wa.me/5493880000000",
+    registrationHref: "https://wa.me/5493883443222",
     registrationLabel: "Inscribirme ahora",
   };
 }
 
 export const defaultContent: MotoclubContent = {
+  navItems: defaultNavItems,
   quienes: `
     <p>Moto Club Jujuy es una comunidad motera que une amistad, aventura y compromiso con la ruta. Nuestro nuevo perfil visual refleja lo que somos: identidad jujeña, pasión por viajar y una familia abierta a todas las marcas.</p>
     <p>Durante el año organizamos salidas, encuentros y recorridos por paisajes únicos del norte argentino. Hoy estamos enfocados en el 6 Motoencuentro Internacional, una convocatoria pensada para recibir a motoviajeros de toda la región.</p>
