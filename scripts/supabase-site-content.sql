@@ -5,6 +5,7 @@ create table if not exists public.site_content (
   fotos jsonb not null default '[]'::jsonb,
   events jsonb not null default '[]'::jsonb,
   novedades jsonb not null default '[]'::jsonb,
+  settings jsonb not null default '{}'::jsonb,
   updated_at timestamptz not null default now()
 );
 
@@ -14,7 +15,10 @@ add column if not exists nav_items jsonb not null default '[]'::jsonb;
 alter table public.site_content
 add column if not exists fotos jsonb not null default '[]'::jsonb;
 
-insert into public.site_content (slug, nav_items, quienes, fotos, events, novedades)
+alter table public.site_content
+add column if not exists settings jsonb not null default '{}'::jsonb;
+
+insert into public.site_content (slug, nav_items, quienes, fotos, events, novedades, settings)
 values (
   'main',
   '[
@@ -99,7 +103,14 @@ values (
       "imageUrl": "/assets/evento-motoencuentro.jpeg",
       "imageAlt": "Afiche de actividad de Moto Club Jujuy"
     }
-  ]'::jsonb
+  ]'::jsonb,
+  '{
+    "heroTitle": "Moto Club Jujuy",
+    "heroSubtitle": "Comunidad, ruta y encuentros",
+    "heroImage": "/assets/evento-motoencuentro.jpeg",
+    "contactText": "Escribinos para sumarte al club o conocer proximos eventos.",
+    "featuredEventId": "event-main"
+  }'::jsonb
 )
 on conflict (slug) do nothing;
 

@@ -1,77 +1,106 @@
 import { NextResponse } from "next/server";
+import { createApiAuthError, isApiTokenValid } from "@/lib/api-auth";
+import { mergeApiSiteContent, toApiSiteContent } from "@/lib/motoclub-api";
 import { normalizeContent } from "@/lib/site-data";
 import { getSupabaseAdmin, validateAdminCredentials } from "@/lib/supabase-admin";
+import { readSiteContentState, writeSiteContentState } from "@/lib/site-content-store";
 
-export async function PUT(request: Request) {
-  const admin = getSupabaseAdmin();
+export async function GET(request: Request) {
+  const auth = isApiTokenValid(request);
 
-  if (!admin) {
+  if (!auth.ok) {
+    return createApiAuthError(auth.reason);
+  }
+
+  const result = await readSiteContentState();
+
+  if (!result.ok) {
     return NextResponse.json(
-      { error: "Falta configurar SUPABASE_SERVICE_ROLE_KEY en el servidor." },
-      { status: 500 }
+      { success: false, error: result.error, detail: result.detail },
+      { status: result.status }
     );
   }
 
+  return NextResponse.json({ success: true, data: toApiSiteContent(result.state) });
+}
+
+export async function PUT(request: Request) {
   const payload = (await request.json()) as {
     username?: string;
     password?: string;
     content?: unknown;
+    heroTitle?: string;
+    heroSubtitle?: string;
+    heroImage?: string;
+    aboutText?: string;
+    contactText?: string;
+    featuredEventId?: string;
   };
 
-  if (!validateAdminCredentials(payload.username, payload.password)) {
-    return NextResponse.json({ error: "No autorizado." }, { status: 401 });
-  }
+  if (payload.content !== undefined) {
+    const admin = getSupabaseAdmin();
 
-  const nextContent = normalizeContent((payload.content ?? null) as Parameters<typeof normalizeContent>[0]);
-  const fullPayload = {
-    slug: "main",
-    nav_items: nextContent.navItems,
-    quienes: nextContent.quienes,
-    fotos: nextContent.fotos,
-    events: nextContent.events,
-    novedades: nextContent.novedades,
-  };
-
-  let { error } = await admin.from("site_content").upsert(fullPayload, { onConflict: "slug" });
-
-  if (error?.message.includes("Could not find")) {
-    const fallbackPayload: {
-      slug: string;
-      nav_items?: typeof nextContent.navItems;
-      quienes: string;
-      fotos?: typeof nextContent.fotos;
-      events: typeof nextContent.events;
-      novedades: typeof nextContent.novedades;
-    } = {
-      slug: "main",
-      nav_items: nextContent.navItems,
-      quienes: nextContent.quienes,
-      fotos: nextContent.fotos,
-      events: nextContent.events,
-      novedades: nextContent.novedades,
-    };
-
-    if (error.message.includes("Could not find the 'fotos' column")) {
-      delete fallbackPayload.fotos;
+    if (!admin) {
+      return NextResponse.json(
+        { error: "Falta configurar SUPABASE_SERVICE_ROLE_KEY en el servidor." },
+        { status: 500 }
+      );
     }
 
-    if (error.message.includes("Could not find the 'nav_items' column")) {
-      delete fallbackPayload.nav_items;
+    if (!validateAdminCredentials(payload.username, payload.password)) {
+      return NextResponse.json({ error: "No autorizado." }, { status: 401 });
     }
 
-    const fallbackResult = await admin.from("site_content").upsert(fallbackPayload, {
-      onConflict: "slug",
+    const current = await readSiteContentState();
+
+    if (!current.ok) {
+      return NextResponse.json(
+        { error: current.error, detail: current.detail },
+        { status: current.status }
+      );
+    }
+
+    const nextContent = normalizeContent((payload.content ?? null) as Parameters<typeof normalizeContent>[0]);
+    const writeResult = await writeSiteContentState({
+      content: nextContent,
+      settings: current.state.settings,
+      updatedAt: current.state.updatedAt,
     });
 
-    error = fallbackResult.error;
+    if (!writeResult.ok) {
+      return NextResponse.json(
+        { error: writeResult.error, detail: writeResult.detail },
+        { status: writeResult.status }
+      );
+    }
+
+    return NextResponse.json({ ok: true, content: writeResult.state.content });
   }
 
-  if (error) {
+  const auth = isApiTokenValid(request);
+
+  if (!auth.ok) {
+    return createApiAuthError(auth.reason);
+  }
+
+  const current = await readSiteContentState();
+
+  if (!current.ok) {
     return NextResponse.json(
-      { error: "No se pudo guardar el contenido en Supabase.", detail: error.message },
-      { status: 500 }
+      { success: false, error: current.error, detail: current.detail },
+      { status: current.status }
     );
   }
 
-  return NextResponse.json({ ok: true, content: nextContent });
+  const nextState = mergeApiSiteContent(current.state, payload);
+  const writeResult = await writeSiteContentState(nextState);
+
+  if (!writeResult.ok) {
+    return NextResponse.json(
+      { success: false, error: writeResult.error, detail: writeResult.detail },
+      { status: writeResult.status }
+    );
+  }
+
+  return NextResponse.json({ success: true, data: toApiSiteContent(writeResult.state) });
 }

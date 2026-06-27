@@ -1,8 +1,13 @@
 export type MotoPhoto = {
+  id?: string;
   url: string;
   titulo: string;
   descripcion: string;
   publicId?: string;
+  category?: string;
+  published?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type InfoItem = {
@@ -24,17 +29,29 @@ export type NavItem = {
 export type NewsItem = {
   id: string;
   createdAt: string;
+  updatedAt?: string;
   title: string;
   tag: string;
   date: string;
   description: string;
   imageUrl: string;
   imageAlt: string;
+  slug?: string;
+  summary?: string;
+  content?: string;
+  coverImage?: string;
+  published?: boolean;
 };
 
 export type ClubEvent = {
   id: string;
   name: string;
+  date?: string;
+  location?: string;
+  coverImage?: string;
+  published?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
   heroEyebrow: string;
   heroHeadlinePrefix: string;
   heroHeadlineHighlight: string;
