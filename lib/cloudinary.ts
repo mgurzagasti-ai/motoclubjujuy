@@ -7,13 +7,21 @@ export type CloudinaryConfig = {
   folder: string;
 };
 
+export function getMissingCloudinaryEnvVars() {
+  return [
+    !process.env.CLOUDINARY_CLOUD_NAME ? "CLOUDINARY_CLOUD_NAME" : null,
+    !process.env.CLOUDINARY_API_KEY ? "CLOUDINARY_API_KEY" : null,
+    !process.env.CLOUDINARY_API_SECRET ? "CLOUDINARY_API_SECRET" : null,
+  ].filter(Boolean) as string[];
+}
+
 export function getCloudinaryConfig(): CloudinaryConfig | null {
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
   const apiKey = process.env.CLOUDINARY_API_KEY;
   const apiSecret = process.env.CLOUDINARY_API_SECRET;
   const folder = process.env.CLOUDINARY_FOLDER || "motoclubjujuy/gallery";
 
-  if (!cloudName || !apiKey || !apiSecret) {
+  if (getMissingCloudinaryEnvVars().length > 0) {
     return null;
   }
 

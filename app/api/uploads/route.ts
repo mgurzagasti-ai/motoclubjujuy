@@ -4,6 +4,7 @@ import {
   buildCloudinarySignature,
   escapeCloudinaryContextValue,
   getCloudinaryConfig,
+  getMissingCloudinaryEnvVars,
 } from "@/lib/cloudinary";
 
 type CloudinaryUploadResponse = {
@@ -25,8 +26,17 @@ export async function POST(request: Request) {
   const config = getCloudinaryConfig();
 
   if (!config) {
+    const missingVars = getMissingCloudinaryEnvVars();
+
     return NextResponse.json(
-      { success: false, error: "Cloudinary no esta configurado en el servidor." },
+      {
+        success: false,
+        error: "Cloudinary no esta configurado en el servidor.",
+        detail:
+          missingVars.length > 0
+            ? `Faltan variables de entorno: ${missingVars.join(", ")}.`
+            : "Las variables de Cloudinary existen pero no pudieron leerse correctamente.",
+      },
       { status: 500 }
     );
   }
