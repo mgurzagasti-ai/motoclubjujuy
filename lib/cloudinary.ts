@@ -26,9 +26,9 @@ export function getCloudinaryConfig(): CloudinaryConfig | null {
   }
 
   return {
-    cloudName,
-    apiKey,
-    apiSecret,
+    cloudName: cloudName as string,
+    apiKey: apiKey as string,
+    apiSecret: apiSecret as string,
     folder,
   };
 }
