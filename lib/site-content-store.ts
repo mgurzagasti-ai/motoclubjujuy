@@ -29,6 +29,30 @@ export type SiteContentState = {
 const baseSelect = "slug, nav_items, quienes, fotos, events, novedades, updated_at";
 const extendedSelect = `${baseSelect}, settings`;
 
+function isMissingSettingsColumnError(error: { message?: string; code?: string } | null | undefined) {
+  if (!error) {
+    return false;
+  }
+
+  const message = error.message?.toLowerCase() || "";
+
+  return (
+    error.code === "42703" ||
+    error.code === "PGRST204" ||
+    message.includes("site_content.settings") ||
+    message.includes("'settings' column") ||
+    message.includes("column settings does not exist")
+  );
+}
+
+function isNoRowsError(error: { code?: string; message?: string } | null | undefined) {
+  if (!error) {
+    return false;
+  }
+
+  return error.code === "PGRST116";
+}
+
 export async function readSiteContentState(): Promise<
   | { ok: true; state: SiteContentState }
   | { ok: false; status: number; error: string; detail?: string }
@@ -43,11 +67,11 @@ export async function readSiteContentState(): Promise<
     };
   }
 
-  const query = admin.from("site_content").select(extendedSelect).eq("slug", "main").single();
+  const query = admin.from("site_content").select(extendedSelect).eq("slug", "main").maybeSingle();
   let { data, error } = await query;
 
-  if (error?.message.includes("Could not find the 'settings' column")) {
-    const fallback = await admin.from("site_content").select(baseSelect).eq("slug", "main").single();
+  if (isMissingSettingsColumnError(error)) {
+    const fallback = await admin.from("site_content").select(baseSelect).eq("slug", "main").maybeSingle();
     data = (fallback.data
       ? {
           ...fallback.data,
@@ -55,6 +79,11 @@ export async function readSiteContentState(): Promise<
         }
       : null) as SiteContentRow | null;
     error = fallback.error;
+  }
+
+  if (isNoRowsError(error)) {
+    error = null;
+    data = null;
   }
 
   if (error) {
@@ -120,7 +149,7 @@ export async function writeSiteContentState(state: SiteContentState) {
     { onConflict: "slug" }
   );
 
-  if (error?.message.includes("Could not find the 'settings' column")) {
+  if (isMissingSettingsColumnError(error)) {
     const fallback = await admin.from("site_content").upsert(
       {
         slug: "main",
