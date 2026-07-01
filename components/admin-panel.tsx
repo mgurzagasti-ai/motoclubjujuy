@@ -80,7 +80,7 @@ function createBlankInfoItem(): InfoItem {
 }
 
 function createBlankDay(): EventDay {
-  return { day: "", detail: "" };
+  return { day: "", detail: "", imageUrl: "", imageAlt: "" };
 }
 
 export function AdminPanel() {
@@ -1211,28 +1211,48 @@ export function AdminPanel() {
 
             <div className="admin-collection-block">
               <div className="admin-collection-head">
-                <strong className="admin-picker-title">Agenda del evento</strong>
+                <strong className="admin-picker-title">Dias del evento</strong>
                 <button type="button" className="ghost-btn" onClick={addDayItem}>
                   Agregar dia
                 </button>
               </div>
               {selectedEvent.dayItems.map((item, index) => (
-                <div className="admin-dual-row" key={`day-${index}`}>
-                  <input
-                    type="text"
-                    placeholder="Dia"
-                    value={item.day}
-                    onChange={(event) => updateDayItem(index, "day", event.target.value)}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Detalle"
-                    value={item.detail}
-                    onChange={(event) => updateDayItem(index, "detail", event.target.value)}
-                  />
-                  <button type="button" className="danger-btn" onClick={() => removeDayItem(index)}>
-                    Quitar
-                  </button>
+                <div className="admin-stack-field" key={`day-${index}`}>
+                  <div className="admin-dual-row">
+                    <input
+                      type="text"
+                      placeholder="Dia"
+                      value={item.day}
+                      onChange={(event) => updateDayItem(index, "day", event.target.value)}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Descripcion del dia"
+                      value={item.detail}
+                      onChange={(event) => updateDayItem(index, "detail", event.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="danger-btn"
+                      onClick={() => removeDayItem(index)}
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                  <div className="admin-dual-row admin-dual-row--media">
+                    <input
+                      type="text"
+                      placeholder="URL de la foto del dia"
+                      value={item.imageUrl || ""}
+                      onChange={(event) => updateDayItem(index, "imageUrl", event.target.value)}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Texto alternativo de la foto"
+                      value={item.imageAlt || ""}
+                      onChange={(event) => updateDayItem(index, "imageAlt", event.target.value)}
+                    />
+                  </div>
                 </div>
               ))}
             </div>

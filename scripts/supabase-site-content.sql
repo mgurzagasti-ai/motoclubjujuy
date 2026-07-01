@@ -72,10 +72,10 @@ values (
         { "label": "Redes del afiche", "value": "Facebook: motoclubjujuy | Instagram: motoclubjujuy2015" }
       ],
       "dayItems": [
-        { "day": "Jueves 1", "detail": "Recepcion, acreditaciones y bienvenida a las delegaciones." },
-        { "day": "Viernes 2", "detail": "Primeras salidas, recorridos y actividades de integracion." },
-        { "day": "Sabado 3", "detail": "Jornada central del encuentro con presencia de motoviajeros y multimarcas." },
-        { "day": "Domingo 4", "detail": "Cierre del encuentro y ultima rodada compartida." }
+        { "day": "Jueves 1", "detail": "9:30 hs Plaza Belgrano y Casa de Gobierno, 10:30 hs Cabildo y Museo, 12:00 traslado a Ciudad Cultural, 12 a 16 hs acreditaciones y entrega de materiales, 13 hs copetin de bienvenida, 17:30 traslado en combi a AstroTurismo y 20 hs gran evento en Salinas Atardecer y Noche con viaje a los planetas.", "imageUrl": "/assets/evento-dia-1.jpeg", "imageAlt": "Programa del Dia 1 del 6to Motoencuentro con actividad de AstroTurismo" },
+        { "day": "Viernes 2", "detail": "9:00 hs salida de Ciudad Cultural a Monterrico, visita a Bodega El Molle con vino y pastas italianas, recorrido por La Almona, San Antonio, El Carmen y Dique La Cienaga, 13:00 degustacion de comida italiana, 16:00 paseo por Perico y regreso, 18:00 barra en food trucks y 20:30 comida ligera con competencia urbana.", "imageUrl": "/assets/evento-dia-2.jpeg", "imageAlt": "Programa del Dia 2 del 6to Motoencuentro con visita a Bodega El Molle" },
+        { "day": "Sabado 3", "detail": "9 hs salida desde Ciudad Cultural a Maimara, visita a Purmamarca y Los Colorados, almuerzo asado a la estaca en Maimara, 16:30 regreso a San Salvador de Jujuy con food trucks y merienda, 19 hs recorrido por la ciudad y visita a los bares de Plaza Belgrano, 21 hs cena ligera con finales de juegos urbanos.", "imageUrl": "/assets/evento-dia-3.jpeg", "imageAlt": "Programa del Dia 3 del 6to Motoencuentro con recorrido a Maimara" },
+        { "day": "Domingo 4", "detail": "Cierre del 6 Motoencuentro Internacional con encuentro final entre delegaciones, resumen del programa 2026 y ultima rodada compartida antes de la despedida.", "imageUrl": "/assets/evento-programa-general.jpeg", "imageAlt": "Placa general del programa 2026 del 6 Motoencuentro Internacional" }
       ],
       "socialItems": [
         { "label": "Instagram oficial", "value": "@motoclubjujuy.oficial" },
@@ -113,6 +113,21 @@ values (
   }'::jsonb
 )
 on conflict (slug) do nothing;
+
+update public.site_content
+set events = jsonb_set(
+  events,
+  '{0,dayItems}',
+  '[
+    { "day": "Jueves 1", "detail": "9:30 hs Plaza Belgrano y Casa de Gobierno, 10:30 hs Cabildo y Museo, 12:00 traslado a Ciudad Cultural, 12 a 16 hs acreditaciones y entrega de materiales, 13 hs copetin de bienvenida, 17:30 traslado en combi a AstroTurismo y 20 hs gran evento en Salinas Atardecer y Noche con viaje a los planetas.", "imageUrl": "/assets/evento-dia-1.jpeg", "imageAlt": "Programa del Dia 1 del 6to Motoencuentro con actividad de AstroTurismo" },
+    { "day": "Viernes 2", "detail": "9:00 hs salida de Ciudad Cultural a Monterrico, visita a Bodega El Molle con vino y pastas italianas, recorrido por La Almona, San Antonio, El Carmen y Dique La Cienaga, 13:00 degustacion de comida italiana, 16:00 paseo por Perico y regreso, 18:00 barra en food trucks y 20:30 comida ligera con competencia urbana.", "imageUrl": "/assets/evento-dia-2.jpeg", "imageAlt": "Programa del Dia 2 del 6to Motoencuentro con visita a Bodega El Molle" },
+    { "day": "Sabado 3", "detail": "9 hs salida desde Ciudad Cultural a Maimara, visita a Purmamarca y Los Colorados, almuerzo asado a la estaca en Maimara, 16:30 regreso a San Salvador de Jujuy con food trucks y merienda, 19 hs recorrido por la ciudad y visita a los bares de Plaza Belgrano, 21 hs cena ligera con finales de juegos urbanos.", "imageUrl": "/assets/evento-dia-3.jpeg", "imageAlt": "Programa del Dia 3 del 6to Motoencuentro con recorrido a Maimara" },
+    { "day": "Domingo 4", "detail": "Cierre del 6 Motoencuentro Internacional con encuentro final entre delegaciones, resumen del programa 2026 y ultima rodada compartida antes de la despedida.", "imageUrl": "/assets/evento-programa-general.jpeg", "imageAlt": "Placa general del programa 2026 del 6 Motoencuentro Internacional" }
+  ]'::jsonb
+)
+where slug = 'main'
+  and jsonb_typeof(events) = 'array'
+  and jsonb_array_length(events) > 0;
 
 grant usage on schema public to anon, authenticated;
 grant select on public.site_content to anon, authenticated;

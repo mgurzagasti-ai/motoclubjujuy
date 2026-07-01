@@ -175,53 +175,60 @@ export function Footer() {
     void syncSupabaseCounter();
   }, []);
 
-  const socialLinks = useMemo(
-    () => {
-      const links = featuredEvent.socialItems
-        .map((item) => ({
-          ...item,
-          href: buildSocialHref(item.label, item.value),
-          icon: getSocialIcon(item.label),
-        }))
-        .filter((item) => Boolean(item.href));
+  const socialLinks = useMemo(() => {
+    const links = featuredEvent.socialItems
+      .map((item) => ({
+        ...item,
+        href: buildSocialHref(item.label, item.value),
+        icon: getSocialIcon(item.label),
+      }))
+      .filter((item) => Boolean(item.href));
 
-      const hasWhatsapp = links.some((item) => item.label.toLowerCase().includes("whatsapp"));
-      const registrationHref = featuredEvent.registrationHref?.trim() || "";
-      const isWhatsappRegistration =
-        /^https?:\/\/(wa\.me|api\.whatsapp\.com)\//i.test(registrationHref);
+    const hasWhatsapp = links.some((item) => item.label.toLowerCase().includes("whatsapp"));
+    const registrationHref = featuredEvent.registrationHref?.trim() || "";
+    const isWhatsappRegistration =
+      /^https?:\/\/(wa\.me|api\.whatsapp\.com)\//i.test(registrationHref);
 
-      if (!hasWhatsapp && isWhatsappRegistration) {
-        links.push({
-          label: "WhatsApp",
-          value: registrationHref,
-          href: registrationHref,
-          icon: getSocialIcon("whatsapp"),
-        });
-      }
+    if (!hasWhatsapp && isWhatsappRegistration) {
+      links.push({
+        label: "WhatsApp",
+        value: registrationHref,
+        href: registrationHref,
+        icon: getSocialIcon("whatsapp"),
+      });
+    }
 
-      return links;
-    },
-    [featuredEvent.registrationHref, featuredEvent.socialItems]
-  );
+    return links;
+  }, [featuredEvent.registrationHref, featuredEvent.socialItems]);
 
   return (
-    <footer className="site-footer">
-      <div className="footer-grid">
-        <div className="footer-block">
-          <strong>Moto Club Jujuy</strong>
-          <p>Pasion por las dos ruedas © 2026 - Martin Urzagasti</p>
+    <footer className="site-footer" id="footer">
+      <div className="footer-card">
+        <div className="footer-top">
+          <div className="footer-brand-block">
+            <span className="footer-eyebrow">Moto Club Jujuy</span>
+            <strong>Comunidad, ruta y encuentros con identidad jujeña</strong>
+            <p>
+              Pasion por las dos ruedas, nuevas rutas y una comunidad abierta para vivir el
+              motoencuentro durante todo el ano.
+            </p>
+          </div>
+
+          <div className="footer-counter">
+            <span className="footer-counter-label">Visitas registradas</span>
+            <strong>{visitCount}</strong>
+            <p className="footer-helper">
+              Fuente actual: {counterSource === "supabase" ? "Supabase global" : "Contador local"}
+            </p>
+          </div>
         </div>
 
-        <div className="footer-block">
-          <strong>Contador de visitas</strong>
-          <p>Visitas registradas: {visitCount}</p>
-          <p className="footer-helper">
-            Fuente actual: {counterSource === "supabase" ? "Supabase global" : "Contador local"}
-          </p>
-        </div>
+        <div className="footer-bottom">
+          <div className="footer-copy">
+            <strong>Seguinos y escribinos</strong>
+            <p>Encontranos en redes y mantente al tanto del 6 Motoencuentro Internacional.</p>
+          </div>
 
-        <div className="footer-block">
-          <strong>Seguinos en las redes sociales</strong>
           <div className="footer-socials">
             {socialLinks.map((item, index) => {
               const iconAsset = getSocialIconAsset(item.label);
@@ -250,6 +257,11 @@ export function Footer() {
               );
             })}
           </div>
+        </div>
+
+        <div className="footer-legal">
+          <span>Pasion por las dos ruedas (c) 2026</span>
+          <span>Martin Urzagasti</span>
         </div>
       </div>
     </footer>

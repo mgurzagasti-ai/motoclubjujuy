@@ -240,12 +240,16 @@ function EventRegistrationForm({ event, compact = false }: EventRegistrationForm
 
 export function PublicSections() {
   const { content } = useMotoclubContent();
+  const [zoomedDayIndex, setZoomedDayIndex] = useState<number | null>(null);
+  const [zoomedNewsIndex, setZoomedNewsIndex] = useState<number | null>(null);
   const featuredEvent = content.events[0] ?? defaultContent.events[0];
   const extraEvents = content.events.slice(1);
   const novedades = sortNewsNewestFirst(
     content.novedades.length ? content.novedades : defaultContent.novedades
   );
   const registrationHref = buildRegistrationHref(featuredEvent.registrationHref);
+  const zoomedDay = zoomedDayIndex === null ? null : featuredEvent.dayItems[zoomedDayIndex];
+  const zoomedNews = zoomedNewsIndex === null ? null : novedades[zoomedNewsIndex];
 
   return (
     <>
@@ -334,26 +338,42 @@ export function PublicSections() {
           <span>{featuredEvent.sectionTitlePrefix}</span> {featuredEvent.sectionTitleHighlight}
         </h2>
         <div className="event-grid">
-          <article className="panel">
+          <article className="panel panel--full">
             <div className="day-list">
               {featuredEvent.dayItems.map((item, index) => (
                 <div className="day-item" key={`${item.day}-${index}`}>
-                  <strong>{item.day}</strong>
-                  <span>{item.detail}</span>
+                  {item.imageUrl ? (
+                    <button
+                      type="button"
+                      className="day-item-image"
+                      onClick={() => setZoomedDayIndex(index)}
+                      aria-label={`Ampliar tarjeta de ${item.day}`}
+                    >
+                      <Image
+                        src={item.imageUrl}
+                        alt={item.imageAlt || item.day}
+                        width={900}
+                        height={600}
+                      />
+                    </button>
+                  ) : null}
+                  <div className="day-item-copy">
+                    <strong>{item.day}</strong>
+                    <span>{item.detail}</span>
+                    {item.imageUrl ? (
+                      <button
+                        type="button"
+                        className="day-zoom-btn"
+                        onClick={() => setZoomedDayIndex(index)}
+                      >
+                        Ver mas grande
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
               ))}
             </div>
           </article>
-
-          <figure className="poster-card poster-card--event">
-            <Image
-              src={featuredEvent.posterUrl}
-              alt={featuredEvent.posterAlt}
-              width={900}
-              height={900}
-              className="poster-image"
-            />
-          </figure>
         </div>
 
         <div className="section-block registration-shell">
@@ -391,22 +411,35 @@ export function PublicSections() {
           Ultimas <span>novedades</span>
         </h2>
         <div className="news-grid">
-          {novedades.map((item) => (
+          {novedades.map((item, index) => (
             <article className="news-card" key={item.id}>
-              <div className="news-card-image">
+              <button
+                type="button"
+                className="news-card-image"
+                onClick={() => item.imageUrl && setZoomedNewsIndex(index)}
+                aria-label={`Ampliar novedad ${item.title}`}
+              >
                 {item.imageUrl ? (
                   <Image src={item.imageUrl} alt={item.imageAlt || item.title} width={900} height={700} />
                 ) : (
                   <div className="admin-news-preview-empty">Sin imagen</div>
                 )}
-              </div>
+              </button>
               <div className="news-card-copy">
                 <div className="news-card-meta">
                   <span>{item.tag}</span>
-                  <span>{item.date}</span>
                 </div>
                 <strong>{item.title}</strong>
                 <p>{item.description}</p>
+                {item.imageUrl ? (
+                  <button
+                    type="button"
+                    className="day-zoom-btn"
+                    onClick={() => setZoomedNewsIndex(index)}
+                  >
+                    Ver mas grande
+                  </button>
+                ) : null}
               </div>
             </article>
           ))}
@@ -477,6 +510,80 @@ export function PublicSections() {
           </article>
         </div>
       </section>
+
+      {zoomedDay ? (
+        <div
+          className="event-zoom-backdrop"
+          role="presentation"
+          onClick={() => setZoomedDayIndex(null)}
+        >
+          <div
+            className="event-zoom-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="event-zoom-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="event-zoom-close"
+              onClick={() => setZoomedDayIndex(null)}
+              aria-label="Cerrar ampliacion"
+            >
+              Cerrar
+            </button>
+            <div className="event-zoom-image">
+              <Image
+                src={zoomedDay.imageUrl || ""}
+                alt={zoomedDay.imageAlt || zoomedDay.day}
+                width={1400}
+                height={1000}
+              />
+            </div>
+            <div className="event-zoom-copy">
+              <strong id="event-zoom-title">{zoomedDay.day}</strong>
+              <p>{zoomedDay.detail}</p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {zoomedNews ? (
+        <div
+          className="event-zoom-backdrop"
+          role="presentation"
+          onClick={() => setZoomedNewsIndex(null)}
+        >
+          <div
+            className="event-zoom-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="news-zoom-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="event-zoom-close"
+              onClick={() => setZoomedNewsIndex(null)}
+              aria-label="Cerrar ampliacion de novedad"
+            >
+              Cerrar
+            </button>
+            <div className="event-zoom-image">
+              <Image
+                src={zoomedNews.imageUrl || ""}
+                alt={zoomedNews.imageAlt || zoomedNews.title}
+                width={1400}
+                height={1000}
+              />
+            </div>
+            <div className="event-zoom-copy">
+              <strong id="news-zoom-title">{zoomedNews.title}</strong>
+              <p>{zoomedNews.description}</p>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }

@@ -18,6 +18,8 @@ export type InfoItem = {
 export type EventDay = {
   day: string;
   detail: string;
+  imageUrl?: string;
+  imageAlt?: string;
 };
 
 export type NavItem = {
@@ -153,6 +155,47 @@ export function normalizeNavHref(value: string | undefined, fallbackHref: string
 
 export function normalizeEvent(event: Partial<ClubEvent> | undefined, index = 0): ClubEvent {
   const fallbackEvent = createDefaultEvent();
+  const fallbackDayItems: EventDay[] = [
+    {
+      day: "Jueves 1",
+      detail:
+        "9:30 hs Plaza Belgrano y Casa de Gobierno, 10:30 hs Cabildo y Museo, 12:00 traslado a Ciudad Cultural, 12 a 16 hs acreditaciones y entrega de materiales, 13 hs copetin de bienvenida, 17:30 traslado en combi a AstroTurismo y 20 hs gran evento en Salinas Atardecer y Noche con viaje a los planetas.",
+      imageUrl: "/assets/evento-dia-1.jpeg",
+      imageAlt: "Programa del Dia 1 del 6to Motoencuentro con actividad de AstroTurismo",
+    },
+    {
+      day: "Viernes 2",
+      detail:
+        "9:00 hs salida de Ciudad Cultural a Monterrico, visita a Bodega El Molle con vino y pastas italianas, recorrido por La Almona, San Antonio, El Carmen y Dique La Cienaga, 13:00 degustacion de comida italiana, 16:00 paseo por Perico y regreso, 18:00 barra en food trucks y 20:30 comida ligera con competencia urbana.",
+      imageUrl: "/assets/evento-dia-2.jpeg",
+      imageAlt: "Programa del Dia 2 del 6to Motoencuentro con visita a Bodega El Molle",
+    },
+    {
+      day: "Sabado 3",
+      detail:
+        "9 hs salida desde Ciudad Cultural a Maimara, visita a Purmamarca y Los Colorados, almuerzo asado a la estaca en Maimara, 16:30 regreso a San Salvador de Jujuy con food trucks y merienda, 19 hs recorrido por la ciudad y visita a los bares de Plaza Belgrano, 21 hs cena ligera con finales de juegos urbanos.",
+      imageUrl: "/assets/evento-dia-3.jpeg",
+      imageAlt: "Programa del Dia 3 del 6to Motoencuentro con recorrido a Maimara",
+    },
+    {
+      day: "Domingo 4",
+      detail:
+        "Cierre del 6 Motoencuentro Internacional con encuentro final entre delegaciones, resumen del programa 2026 y ultima rodada compartida antes de la despedida.",
+      imageUrl: "/assets/evento-programa-general.jpeg",
+      imageAlt: "Placa general del programa 2026 del 6 Motoencuentro Internacional",
+    },
+  ];
+  const normalizedDayItems = Array.isArray(event?.dayItems)
+    ? event.dayItems.map((item, itemIndex) => ({
+        day: item?.day || fallbackDayItems[itemIndex]?.day || "",
+        detail:
+          item?.detail && item.detail.trim().length > 60
+            ? item.detail
+            : item?.detail || fallbackDayItems[itemIndex]?.detail || "",
+        imageUrl: item?.imageUrl || fallbackDayItems[itemIndex]?.imageUrl || "",
+        imageAlt: item?.imageAlt || fallbackDayItems[itemIndex]?.imageAlt || "",
+      }))
+    : fallbackDayItems;
 
   return {
     ...fallbackEvent,
@@ -162,7 +205,7 @@ export function normalizeEvent(event: Partial<ClubEvent> | undefined, index = 0)
     highlightItems: Array.isArray(event?.highlightItems)
       ? event.highlightItems
       : fallbackEvent.highlightItems,
-    dayItems: Array.isArray(event?.dayItems) ? event.dayItems : fallbackEvent.dayItems,
+    dayItems: normalizedDayItems,
     socialItems: Array.isArray(event?.socialItems) ? event.socialItems : fallbackEvent.socialItems,
     contactItems: Array.isArray(event?.contactItems)
       ? event.contactItems
