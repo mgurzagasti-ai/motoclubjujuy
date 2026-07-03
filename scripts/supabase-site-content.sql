@@ -79,6 +79,7 @@ values (
       ],
       "socialItems": [
         { "label": "Instagram oficial", "value": "@motoclubjujuy.oficial" },
+        { "label": "WhatsApp", "value": "+54 9 388 344-3222" },
         { "label": "Facebook", "value": "motoclubjujuy" },
         { "label": "Instagram historico", "value": "motoclubjujuy2015" }
       ],
@@ -89,7 +90,7 @@ values (
       ],
       "registrationTitle": "Inscripcion abierta",
       "registrationDescription": "Reserva tu lugar para el encuentro y recibi la informacion principal de acreditacion, costos y puntos de salida.",
-      "registrationHref": "https://wa.me/5493883443222",
+      "registrationHref": "https://docs.google.com/forms/d/e/1FAIpQLScNwaKMnt8IpG-czdKp8dnJjhddk1Rq2uFgEOcUdS37MHvT7A/viewform?pli=1",
       "registrationLabel": "Inscribirme ahora"
     }
   ]'::jsonb,
@@ -123,6 +124,31 @@ set events = jsonb_set(
     { "day": "Viernes 2", "detail": "9:00 hs salida de Ciudad Cultural a Monterrico, visita a Bodega El Molle con vino y pastas italianas, recorrido por La Almona, San Antonio, El Carmen y Dique La Cienaga, 13:00 degustacion de comida italiana, 16:00 paseo por Perico y regreso, 18:00 barra en food trucks y 20:30 comida ligera con competencia urbana.", "imageUrl": "/assets/evento-dia-2.jpeg", "imageAlt": "Programa del Dia 2 del 6to Motoencuentro con visita a Bodega El Molle" },
     { "day": "Sabado 3", "detail": "9 hs salida desde Ciudad Cultural a Maimara, visita a Purmamarca y Los Colorados, almuerzo asado a la estaca en Maimara, 16:30 regreso a San Salvador de Jujuy con food trucks y merienda, 19 hs recorrido por la ciudad y visita a los bares de Plaza Belgrano, 21 hs cena ligera con finales de juegos urbanos.", "imageUrl": "/assets/evento-dia-3.jpeg", "imageAlt": "Programa del Dia 3 del 6to Motoencuentro con recorrido a Maimara" },
     { "day": "Domingo 4", "detail": "Cierre del 6 Motoencuentro Internacional con encuentro final entre delegaciones, resumen del programa 2026 y ultima rodada compartida antes de la despedida.", "imageUrl": "/assets/evento-programa-general.jpeg", "imageAlt": "Placa general del programa 2026 del 6 Motoencuentro Internacional" }
+  ]'::jsonb
+)
+where slug = 'main'
+  and jsonb_typeof(events) = 'array'
+  and jsonb_array_length(events) > 0;
+
+update public.site_content
+set events = jsonb_set(
+  events,
+  '{0,registrationHref}',
+  '"https://docs.google.com/forms/d/e/1FAIpQLScNwaKMnt8IpG-czdKp8dnJjhddk1Rq2uFgEOcUdS37MHvT7A/viewform?pli=1"'::jsonb
+)
+where slug = 'main'
+  and jsonb_typeof(events) = 'array'
+  and jsonb_array_length(events) > 0;
+
+update public.site_content
+set events = jsonb_set(
+  events,
+  '{0,socialItems}',
+  '[
+    { "label": "Instagram oficial", "value": "@motoclubjujuy.oficial" },
+    { "label": "WhatsApp", "value": "+54 9 388 344-3222" },
+    { "label": "Facebook", "value": "motoclubjujuy" },
+    { "label": "Instagram historico", "value": "motoclubjujuy2015" }
   ]'::jsonb
 )
 where slug = 'main'

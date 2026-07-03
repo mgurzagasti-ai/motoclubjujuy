@@ -66,6 +66,11 @@ function buildRegistrationHref(value?: string) {
   return phone ? `https://wa.me/${phone}` : trimmedValue;
 }
 
+function usesExternalRegistrationLink(value?: string) {
+  const registrationHref = buildRegistrationHref(value);
+  return Boolean(registrationHref && /^https?:\/\//i.test(registrationHref));
+}
+
 type EventRegistrationFormProps = {
   event: ClubEvent;
   compact?: boolean;
@@ -82,6 +87,7 @@ function EventRegistrationForm({ event, compact = false }: EventRegistrationForm
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOpen, setIsOpen] = useState(!compact);
   const registrationHref = buildRegistrationHref(event.registrationHref);
+  const shouldUseExternalRegistration = usesExternalRegistrationLink(event.registrationHref);
 
   const resetForm = () => {
     setFullName("");
@@ -144,7 +150,7 @@ function EventRegistrationForm({ event, compact = false }: EventRegistrationForm
           <span className="event-mini-registration-title">{event.registrationTitle}</span>
           <p className="small registration-copy">{event.registrationDescription}</p>
         </div>
-        {compact ? (
+        {compact && !shouldUseExternalRegistration ? (
           <button
             type="button"
             className="btn btn-secondary registration-toggle"
@@ -155,13 +161,13 @@ function EventRegistrationForm({ event, compact = false }: EventRegistrationForm
         ) : null}
       </div>
 
-      {!compact && registrationHref ? (
+      {registrationHref && shouldUseExternalRegistration ? (
         <a className="btn btn-primary registration-link-btn" href={registrationHref} target="_blank" rel="noreferrer">
           {event.registrationLabel}
         </a>
       ) : null}
 
-      {isOpen ? (
+      {isOpen && !shouldUseExternalRegistration ? (
         <form className="registration-form" onSubmit={handleSubmit}>
           <div className="registration-grid">
             <div>

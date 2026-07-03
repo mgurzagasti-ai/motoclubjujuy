@@ -380,6 +380,10 @@ export function createDefaultEvent(): ClubEvent {
         value: "@motoclubjujuy.oficial",
       },
       {
+        label: "WhatsApp",
+        value: "+54 9 388 344-3222",
+      },
+      {
         label: "Facebook",
         value: "motoclubjujuy",
       },
@@ -405,7 +409,8 @@ export function createDefaultEvent(): ClubEvent {
     registrationTitle: "Inscripción abierta",
     registrationDescription:
       "Reservá tu lugar para el encuentro y recibí la información principal de acreditación, costos y puntos de salida.",
-    registrationHref: "https://wa.me/5493883443222",
+    registrationHref:
+      "https://docs.google.com/forms/d/e/1FAIpQLScNwaKMnt8IpG-czdKp8dnJjhddk1Rq2uFgEOcUdS37MHvT7A/viewform?pli=1",
     registrationLabel: "Inscribirme ahora",
   };
 }
