@@ -42,6 +42,10 @@ body::before {
   opacity: 0.8;
 }
 
+body.has-intro-presentation {
+  overflow: hidden;
+}
+
 a {
   color: inherit;
   text-decoration: none;
@@ -54,6 +58,587 @@ img {
 
 img[data-nimg] {
   height: auto;
+}
+
+.intro-presentation {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  overflow: hidden;
+  padding: clamp(2rem, 5vw, 4rem) 1rem;
+  background: #010101;
+}
+
+.intro-video-layer {
+  position: absolute;
+  inset: 0;
+  z-index: -3;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 66% 42%, rgba(44, 166, 224, 0.2), transparent 24%),
+    radial-gradient(circle at 28% 18%, rgba(255, 207, 64, 0.16), transparent 24%),
+    linear-gradient(115deg, #020202 0%, #06101a 46%, #050505 100%);
+}
+
+.intro-video-layer::before,
+.intro-video-layer::after {
+  content: "";
+  position: absolute;
+  inset: -22%;
+  opacity: 0.42;
+  background:
+    repeating-linear-gradient(
+      112deg,
+      transparent 0 56px,
+      rgba(255, 255, 255, 0.12) 57px,
+      transparent 61px
+    );
+  filter: blur(1px);
+  animation: intro-background-slide 4.5s linear infinite;
+}
+
+.intro-video-layer::after {
+  opacity: 0.26;
+  background:
+    repeating-linear-gradient(
+      118deg,
+      transparent 0 118px,
+      rgba(255, 207, 64, 0.18) 119px,
+      transparent 124px
+    );
+  animation-duration: 6.8s;
+}
+
+.intro-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(circle, rgba(0, 0, 0, 0.08) 0 22%, rgba(0, 0, 0, 0.72) 62%, #000 100%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.68));
+}
+
+.intro-road {
+  position: absolute;
+  right: -12vw;
+  bottom: 10vh;
+  width: 78vw;
+  height: 4px;
+  border-radius: 999px;
+  transform: rotate(-12deg);
+  transform-origin: right center;
+  animation: intro-road-loop 1.35s linear infinite;
+}
+
+.intro-road--one {
+  background: linear-gradient(90deg, transparent, rgba(44, 166, 224, 0.95), transparent);
+  box-shadow: 0 0 26px rgba(44, 166, 224, 0.62);
+}
+
+.intro-road--two {
+  bottom: 21vh;
+  animation-delay: -0.45s;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.88), transparent);
+  box-shadow: 0 0 22px rgba(255, 255, 255, 0.36);
+}
+
+.intro-road--three {
+  bottom: 32vh;
+  animation-delay: -0.9s;
+  background: linear-gradient(90deg, transparent, rgba(255, 207, 64, 0.78), transparent);
+  box-shadow: 0 0 24px rgba(255, 207, 64, 0.46);
+}
+
+.intro-bike {
+  position: absolute;
+  right: 8vw;
+  bottom: 16vh;
+  width: clamp(180px, 24vw, 340px);
+  aspect-ratio: 2.1 / 1;
+  opacity: 0.32;
+  filter: drop-shadow(0 0 22px rgba(44, 166, 224, 0.38));
+  animation: intro-bike-float 2.2s ease-in-out infinite;
+}
+
+.intro-bike-body {
+  position: absolute;
+  left: 14%;
+  top: 28%;
+  width: 68%;
+  height: 28%;
+  border-top: 12px solid rgba(255, 255, 255, 0.72);
+  border-left: 10px solid rgba(255, 255, 255, 0.62);
+  border-radius: 50% 45% 35% 35%;
+  transform: skewX(-18deg);
+}
+
+.intro-bike-body::before {
+  content: "";
+  position: absolute;
+  right: 10%;
+  top: -34px;
+  width: 34%;
+  height: 38px;
+  border-top: 10px solid rgba(255, 207, 64, 0.74);
+  border-right: 8px solid rgba(255, 207, 64, 0.58);
+  border-radius: 50% 70% 0 0;
+  transform: rotate(-18deg);
+}
+
+.intro-bike-wheel {
+  position: absolute;
+  bottom: 3%;
+  width: 30%;
+  aspect-ratio: 1;
+  border: 8px solid rgba(255, 255, 255, 0.78);
+  border-top-color: rgba(44, 166, 224, 0.9);
+  border-radius: 50%;
+  box-shadow: inset 0 0 18px rgba(44, 166, 224, 0.42);
+  animation: intro-wheel-spin 0.78s linear infinite;
+}
+
+.intro-bike-wheel--front {
+  right: 4%;
+}
+
+.intro-bike-wheel--back {
+  left: 5%;
+}
+
+.intro-speed-lines {
+  position: absolute;
+  left: -20vw;
+  top: 18vh;
+  width: 70vw;
+  height: 46vh;
+  opacity: 0.34;
+  background:
+    linear-gradient(100deg, transparent 0 48%, rgba(44, 166, 224, 0.42) 49%, transparent 51%),
+    linear-gradient(106deg, transparent 0 55%, rgba(255, 255, 255, 0.26) 56%, transparent 58%),
+    linear-gradient(112deg, transparent 0 65%, rgba(255, 207, 64, 0.28) 66%, transparent 68%);
+  filter: blur(0.5px);
+  animation: intro-speed-sweep 2.8s linear infinite;
+}
+
+.intro-content {
+  display: grid;
+  place-items: center;
+  gap: clamp(1.5rem, 4vw, 2.6rem);
+  width: min(760px, 100%);
+  text-align: center;
+}
+
+.intro-logo-shell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(68vw, 440px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  animation: intro-logo-breathe 6.8s cubic-bezier(0.45, 0, 0.2, 1) 1 forwards;
+}
+
+.intro-logo-shell::before,
+.intro-logo-shell::after {
+  content: "";
+  position: absolute;
+  inset: -6%;
+  border-radius: 50%;
+  background:
+    conic-gradient(
+      from 0deg,
+      transparent,
+      rgba(255, 207, 64, 0.18),
+      rgba(44, 166, 224, 0.3),
+      rgba(255, 207, 64, 0.42),
+      transparent
+    );
+  filter: blur(18px);
+  animation: intro-incandescence 6.8s cubic-bezier(0.45, 0, 0.2, 1) 1 forwards;
+}
+
+.intro-logo-shell::after {
+  inset: -13%;
+  opacity: 0.18;
+  filter: blur(34px);
+  animation: intro-incandescence-soft 6.8s cubic-bezier(0.45, 0, 0.2, 1) 1 forwards;
+}
+
+.intro-logo-orbit {
+  position: absolute;
+  inset: -4%;
+  border: 1px solid rgba(255, 207, 64, 0.36);
+  border-radius: 50%;
+  box-shadow:
+    0 0 20px rgba(255, 207, 64, 0.24),
+    inset 0 0 20px rgba(255, 207, 64, 0.12);
+  animation: intro-orbit-pulse 6.8s cubic-bezier(0.45, 0, 0.2, 1) 1 forwards;
+}
+
+.intro-logo {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: 5px solid rgba(255, 207, 64, 0.82);
+  border-radius: 50%;
+  box-shadow:
+    0 0 10px rgba(255, 255, 255, 0.24),
+    0 0 28px rgba(255, 207, 64, 0.34),
+    0 0 58px rgba(255, 207, 64, 0.14);
+  animation: intro-logo-heat 6.8s cubic-bezier(0.45, 0, 0.2, 1) 1 forwards;
+}
+
+.intro-enter-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  padding: 0.95rem 1.6rem;
+  overflow: hidden;
+  color: #090909;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #fff1a7, var(--gold-strong) 48%, #e59d16);
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  border-radius: 999px;
+  box-shadow:
+    0 0 20px rgba(255, 207, 64, 0.5),
+    0 12px 32px rgba(0, 0, 0, 0.45);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.intro-enter-btn::before {
+  content: "";
+  position: absolute;
+  inset: -40% auto -40% -30%;
+  width: 35%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.74), transparent);
+  transform: skewX(-22deg);
+  animation: intro-button-shine 2.35s ease-in-out infinite;
+}
+
+.intro-enter-btn:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow:
+    0 0 28px rgba(255, 207, 64, 0.72),
+    0 16px 38px rgba(0, 0, 0, 0.5);
+}
+
+.intro-enter-btn:focus-visible {
+  outline: 3px solid rgba(44, 166, 224, 0.92);
+  outline-offset: 5px;
+}
+
+@keyframes intro-background-slide {
+  from {
+    transform: translate3d(-8%, -4%, 0);
+  }
+
+  to {
+    transform: translate3d(8%, 4%, 0);
+  }
+}
+
+@keyframes intro-road-loop {
+  from {
+    transform: translateX(0) rotate(-12deg);
+  }
+
+  to {
+    transform: translateX(-48vw) rotate(-12deg);
+  }
+}
+
+@keyframes intro-bike-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-4deg);
+  }
+
+  50% {
+    transform: translateY(-10px) rotate(-2deg);
+  }
+}
+
+@keyframes intro-wheel-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes intro-speed-sweep {
+  from {
+    transform: translateX(-8vw);
+  }
+
+  to {
+    transform: translateX(38vw);
+  }
+}
+
+@keyframes intro-logo-breathe {
+  0% {
+    transform: scale(0.94);
+  }
+
+  68% {
+    transform: scale(1.035);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes intro-glow-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes intro-orbit-pulse {
+  0% {
+    opacity: 0.06;
+    transform: scale(0.94);
+    box-shadow:
+      0 0 8px rgba(255, 207, 64, 0.08),
+      inset 0 0 8px rgba(255, 207, 64, 0.04);
+  }
+
+  35% {
+    opacity: 0.34;
+    transform: scale(0.99);
+    box-shadow:
+      0 0 24px rgba(255, 207, 64, 0.28),
+      inset 0 0 18px rgba(255, 207, 64, 0.12);
+  }
+
+  72% {
+    opacity: 0.92;
+    transform: scale(1.075);
+    box-shadow:
+      0 0 58px rgba(255, 207, 64, 0.66),
+      inset 0 0 42px rgba(255, 207, 64, 0.26);
+  }
+
+  100% {
+    opacity: 0.76;
+    transform: scale(1.035);
+    box-shadow:
+      0 0 40px rgba(255, 207, 64, 0.48),
+      inset 0 0 30px rgba(255, 207, 64, 0.2);
+  }
+}
+
+@keyframes intro-incandescence {
+  0% {
+    opacity: 0.02;
+    transform: scale(0.92);
+  }
+
+  35% {
+    opacity: 0.22;
+    transform: scale(0.98);
+  }
+
+  72% {
+    opacity: 0.84;
+    transform: scale(1.09);
+  }
+
+  100% {
+    opacity: 0.46;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes intro-incandescence-soft {
+  0% {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+
+  35% {
+    opacity: 0.12;
+    transform: scale(1);
+  }
+
+  72% {
+    opacity: 0.58;
+    transform: scale(1.16);
+  }
+
+  100% {
+    opacity: 0.3;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes intro-logo-heat {
+  0% {
+    opacity: 0.12;
+    filter: brightness(0.22) saturate(0.8) blur(1px);
+    box-shadow:
+      0 0 2px rgba(255, 255, 255, 0.06),
+      0 0 8px rgba(255, 207, 64, 0.08),
+      0 0 16px rgba(255, 207, 64, 0.04);
+  }
+
+  28% {
+    opacity: 0.34;
+    filter: brightness(0.48) saturate(0.9) blur(0.6px);
+    box-shadow:
+      0 0 6px rgba(255, 255, 255, 0.1),
+      0 0 18px rgba(255, 207, 64, 0.18),
+      0 0 38px rgba(255, 207, 64, 0.08);
+  }
+
+  62% {
+    opacity: 0.78;
+    filter: brightness(0.88) saturate(1.04) blur(0);
+    box-shadow:
+      0 0 12px rgba(255, 255, 255, 0.24),
+      0 0 42px rgba(255, 207, 64, 0.48),
+      0 0 90px rgba(255, 207, 64, 0.24);
+  }
+
+  82% {
+    opacity: 1;
+    filter: brightness(1.16) saturate(1.14) blur(0);
+    box-shadow:
+      0 0 18px rgba(255, 255, 255, 0.42),
+      0 0 68px rgba(255, 207, 64, 0.74),
+      0 0 132px rgba(255, 207, 64, 0.38);
+  }
+
+  100% {
+    opacity: 1;
+    filter: brightness(1.06) saturate(1.08) blur(0);
+    box-shadow:
+      0 0 14px rgba(255, 255, 255, 0.32),
+      0 0 52px rgba(255, 207, 64, 0.58),
+      0 0 104px rgba(255, 207, 64, 0.28);
+  }
+}
+
+@keyframes intro-button-shine {
+  0% {
+    left: -42%;
+  }
+
+  48%,
+  100% {
+    left: 124%;
+  }
+}
+
+@keyframes brand-logo-reveal {
+  0% {
+    opacity: 0.16;
+    filter: brightness(0.28) saturate(0.82) blur(0.6px);
+    box-shadow:
+      0 0 2px rgba(255, 255, 255, 0.06),
+      0 0 8px rgba(255, 207, 64, 0.08);
+  }
+
+  38% {
+    opacity: 0.46;
+    filter: brightness(0.58) saturate(0.94) blur(0.2px);
+    box-shadow:
+      0 0 5px rgba(255, 255, 255, 0.12),
+      0 0 18px rgba(255, 207, 64, 0.24);
+  }
+
+  78% {
+    opacity: 1;
+    filter: brightness(1.15) saturate(1.12) blur(0);
+    box-shadow:
+      0 0 10px rgba(255, 255, 255, 0.32),
+      0 0 28px rgba(255, 207, 64, 0.62),
+      0 0 48px rgba(255, 207, 64, 0.24);
+  }
+
+  100% {
+    opacity: 1;
+    filter: brightness(1.04) saturate(1.06) blur(0);
+    box-shadow:
+      0 0 8px rgba(255, 255, 255, 0.2),
+      0 0 22px rgba(255, 207, 64, 0.42),
+      0 0 34px rgba(255, 207, 64, 0.16);
+  }
+}
+
+@keyframes brand-logo-incandescence {
+  0% {
+    opacity: 0;
+    transform: scale(0.86);
+  }
+
+  42% {
+    opacity: 0.22;
+    transform: scale(0.98);
+  }
+
+  78% {
+    opacity: 0.78;
+    transform: scale(1.14);
+  }
+
+  100% {
+    opacity: 0.34;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes brand-logo-incandescence-soft {
+  0% {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+
+  42% {
+    opacity: 0.12;
+    transform: scale(1);
+  }
+
+  78% {
+    opacity: 0.48;
+    transform: scale(1.26);
+  }
+
+  100% {
+    opacity: 0.2;
+    transform: scale(1.1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro-video-layer::before,
+  .intro-video-layer::after,
+  .intro-road,
+  .intro-bike,
+  .intro-bike-wheel,
+  .intro-speed-lines,
+  .intro-logo-shell,
+  .intro-logo-shell::before,
+  .intro-logo-shell::after,
+  .intro-logo-orbit,
+  .intro-enter-btn::before,
+  .brand-logo,
+  .brand-logo-shell::before,
+  .brand-logo-shell::after {
+    animation: none;
+  }
 }
 
 .navbar {
@@ -71,18 +656,53 @@ img[data-nimg] {
 }
 
 .brand {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.9rem;
 }
 
-.brand img {
+.brand-logo-shell {
+  position: relative;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+}
+
+.brand-logo-shell::before,
+.brand-logo-shell::after {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 207, 64, 0.46), transparent 66%);
+  filter: blur(8px);
+  opacity: 0;
+  animation: brand-logo-incandescence 5.2s cubic-bezier(0.45, 0, 0.2, 1) 1 forwards;
+}
+
+.brand-logo-shell::after {
+  inset: -12px;
+  filter: blur(14px);
+  background: radial-gradient(circle, rgba(255, 207, 64, 0.28), transparent 70%);
+  animation-name: brand-logo-incandescence-soft;
+}
+
+.brand img,
+.brand-logo {
+  position: relative;
+  z-index: 1;
   width: 58px;
   height: 58px;
   object-fit: cover;
   border: 2px solid rgba(244, 199, 106, 0.65);
   border-radius: 50%;
-  box-shadow: 0 0 24px rgba(244, 199, 106, 0.2);
+  box-shadow: 0 0 10px rgba(244, 199, 106, 0.12);
+  animation: brand-logo-reveal 5.2s cubic-bezier(0.45, 0, 0.2, 1) 1 forwards;
 }
 
 .brand-copy strong {

@@ -76,13 +76,16 @@ export function Navbar() {
   return (
     <nav className="navbar">
       <Link className="brand" href="/#inicio">
-        <Image
-          src="/assets/logo-motoclub.jpeg"
-          alt="Logo de Moto Club Jujuy"
-          width={58}
-          height={58}
-          priority
-        />
+        <span className="brand-logo-shell">
+          <Image
+            className="brand-logo"
+            src="/assets/logo-motoclub-intro.png"
+            alt="Logo de Moto Club Jujuy"
+            width={58}
+            height={58}
+            priority
+          />
+        </span>
         <div className="brand-copy">
           <strong>Moto Club Jujuy</strong>
           <span>@motoclubjujuy.oficial</span>
