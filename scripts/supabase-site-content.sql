@@ -80,7 +80,8 @@ values (
       "socialItems": [
         { "label": "Instagram oficial", "value": "@motoclubjujuy.oficial" },
         { "label": "WhatsApp", "value": "+54 9 388 344-3222" },
-        { "label": "Facebook", "value": "motoclubjujuy" },
+        { "label": "Facebook", "value": "https://www.facebook.com/motoclubjujuy17/?locale=es_LA" },
+        { "label": "YouTube", "value": "https://www.youtube.com/channel/UCbaji8ytf09nth3uMRES9-w" },
         { "label": "Instagram historico", "value": "motoclubjujuy2015" }
       ],
       "contactItems": [
@@ -147,7 +148,8 @@ set events = jsonb_set(
   '[
     { "label": "Instagram oficial", "value": "@motoclubjujuy.oficial" },
     { "label": "WhatsApp", "value": "+54 9 388 344-3222" },
-    { "label": "Facebook", "value": "motoclubjujuy" },
+    { "label": "Facebook", "value": "https://www.facebook.com/motoclubjujuy17/?locale=es_LA" },
+    { "label": "YouTube", "value": "https://www.youtube.com/channel/UCbaji8ytf09nth3uMRES9-w" },
     { "label": "Instagram historico", "value": "motoclubjujuy2015" }
   ]'::jsonb
 )

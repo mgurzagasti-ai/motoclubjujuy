@@ -385,7 +385,11 @@ export function createDefaultEvent(): ClubEvent {
       },
       {
         label: "Facebook",
-        value: "motoclubjujuy",
+        value: "https://www.facebook.com/motoclubjujuy17/?locale=es_LA",
+      },
+      {
+        label: "YouTube",
+        value: "https://www.youtube.com/channel/UCbaji8ytf09nth3uMRES9-w",
       },
       {
         label: "Instagram histórico",
