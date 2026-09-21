@@ -11,6 +11,10 @@ function getSectionIdFromHref(href: string) {
   return match?.[1] ?? null;
 }
 
+function isExternalHref(href: string) {
+  return /^https?:\/\//i.test(href);
+}
+
 export function Navbar() {
   const { content } = useMotoclubContent();
   const navItems = content.navItems.length ? content.navItems : defaultContent.navItems;
@@ -22,6 +26,7 @@ export function Navbar() {
         href: item.href,
         label: item.label,
         sectionId: getSectionIdFromHref(item.href),
+        isExternal: isExternalHref(item.href),
         accent: false,
       })),
       {
@@ -29,6 +34,7 @@ export function Navbar() {
         href: "/#footer",
         label: "Contacto",
         sectionId: "footer",
+        isExternal: false,
         accent: true,
       },
     ],
@@ -97,10 +103,12 @@ export function Navbar() {
           <Link
             key={item.id}
             href={item.href}
+            target={item.isExternal ? "_blank" : undefined}
+            rel={item.isExternal ? "noreferrer" : undefined}
             className={`${item.accent ? "nav-link-accent" : ""} ${
-              item.sectionId === activeSection ? "is-active" : ""
+              !item.isExternal && item.sectionId === activeSection ? "is-active" : ""
             }`.trim()}
-            aria-current={item.sectionId === activeSection ? "page" : undefined}
+            aria-current={!item.isExternal && item.sectionId === activeSection ? "page" : undefined}
           >
             <span>{item.label}</span>
           </Link>

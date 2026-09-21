@@ -24,6 +24,7 @@ values (
   '[
     { "id": "nav-inicio", "href": "/#inicio", "label": "Inicio" },
     { "id": "nav-evento", "href": "/#evento", "label": "Evento 2026" },
+    { "id": "nav-alojamientos", "href": "/alojamientos-sugeridos", "label": "Alojamientos sugeridos" },
     { "id": "nav-novedades", "href": "/#novedades", "label": "Novedades" },
     { "id": "nav-quienes", "href": "/#quienes", "label": "Quienes somos" },
     { "id": "nav-fotos", "href": "/#fotos", "label": "Galeria" },
@@ -156,6 +157,34 @@ set events = jsonb_set(
 where slug = 'main'
   and jsonb_typeof(events) = 'array'
   and jsonb_array_length(events) > 0;
+
+update public.site_content
+set nav_items = nav_items || '[{ "id": "nav-alojamientos", "href": "/alojamientos-sugeridos", "label": "Alojamientos sugeridos" }]'::jsonb
+where slug = 'main'
+  and jsonb_typeof(nav_items) = 'array'
+  and not exists (
+    select 1
+    from jsonb_array_elements(nav_items) as item
+    where item->>'id' = 'nav-alojamientos'
+      or item->>'href' = 'https://sites.google.com/view/5tomotoencuentrojujuy/alojamientos-sugeridos'
+      or lower(item->>'label') = 'alojamientos sugeridos'
+  );
+
+update public.site_content
+set nav_items = (
+  select jsonb_agg(
+    case
+      when item->>'id' = 'nav-alojamientos'
+        or item->>'href' = 'https://sites.google.com/view/5tomotoencuentrojujuy/alojamientos-sugeridos'
+        or lower(item->>'label') = 'alojamientos sugeridos'
+      then '{ "id": "nav-alojamientos", "href": "/alojamientos-sugeridos", "label": "Alojamientos sugeridos" }'::jsonb
+      else item
+    end
+  )
+  from jsonb_array_elements(nav_items) as item
+)
+where slug = 'main'
+  and jsonb_typeof(nav_items) = 'array';
 
 grant usage on schema public to anon, authenticated;
 grant select on public.site_content to anon, authenticated;

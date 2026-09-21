@@ -103,9 +103,19 @@ export const internalImageOptions: MotoPhoto[] = [
   },
 ];
 
+export const suggestedLodgingNavItem: NavItem = {
+  id: "nav-alojamientos",
+  href: "/alojamientos-sugeridos",
+  label: "Alojamientos sugeridos",
+};
+
+export const suggestedLodgingExternalHref =
+  "https://sites.google.com/view/5tomotoencuentrojujuy/alojamientos-sugeridos";
+
 export const defaultNavItems: NavItem[] = [
   { id: "nav-inicio", href: "/#inicio", label: "Inicio" },
   { id: "nav-evento", href: "/#evento", label: "Evento 2026" },
+  suggestedLodgingNavItem,
   { id: "nav-novedades", href: "/#novedades", label: "Novedades" },
   { id: "nav-quienes", href: "/#quienes", label: "Quienes somos" },
   { id: "nav-fotos", href: "/#fotos", label: "Galeria" },
@@ -254,6 +264,29 @@ export function normalizeNavItem(item: Partial<NavItem> | undefined, index = 0):
   };
 }
 
+function ensureSuggestedLodgingNavItem(items: NavItem[]) {
+  const existingIndex = items.findIndex(
+    (item) =>
+      item.id === suggestedLodgingNavItem.id ||
+      item.href === suggestedLodgingExternalHref ||
+      item.href === suggestedLodgingNavItem.href ||
+      item.label.toLowerCase() === suggestedLodgingNavItem.label.toLowerCase()
+  );
+
+  if (existingIndex >= 0) {
+    return items.map((item, index) => (index === existingIndex ? suggestedLodgingNavItem : item));
+  }
+
+  const eventIndex = items.findIndex((item) => item.id === "nav-evento");
+  const insertionIndex = eventIndex >= 0 ? eventIndex + 1 : Math.min(2, items.length);
+
+  return [
+    ...items.slice(0, insertionIndex),
+    suggestedLodgingNavItem,
+    ...items.slice(insertionIndex),
+  ];
+}
+
 export function sortNewsNewestFirst(items: NewsItem[]): NewsItem[] {
   return [...items].sort((a, b) => {
     const timeA = Date.parse(a.createdAt || "");
@@ -276,11 +309,13 @@ export function sortNewsNewestFirst(items: NewsItem[]): NewsItem[] {
 }
 
 export function normalizeContent(parsed: Partial<MotoclubContent> | null | undefined): MotoclubContent {
+  const navItems =
+    Array.isArray(parsed?.navItems) && parsed.navItems.length
+      ? parsed.navItems.map((item, index) => normalizeNavItem(item, index))
+      : defaultContent.navItems;
+
   return {
-    navItems:
-      Array.isArray(parsed?.navItems) && parsed.navItems.length
-        ? parsed.navItems.map((item, index) => normalizeNavItem(item, index))
-        : defaultContent.navItems,
+    navItems: ensureSuggestedLodgingNavItem(navItems),
     quienes: parsed?.quienes || defaultContent.quienes,
     fotos: Array.isArray(parsed?.fotos) ? parsed!.fotos : defaultContent.fotos,
     events:
