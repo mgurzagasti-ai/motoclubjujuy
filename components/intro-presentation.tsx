@@ -3,13 +3,14 @@
 import Image from "next/image";
 import { MouseEvent, useEffect, useState } from "react";
 import { useMotoclubContent } from "@/lib/use-motoclub-content";
+import { imageUrl } from "@/lib/public-content";
 
 const INTRO_SEEN_KEY = "motoclub-intro-seen";
 
 export function IntroPresentation() {
   const { siteSettings } = useMotoclubContent();
   const [failedLogoUrl, setFailedLogoUrl] = useState<string | null>(null);
-  const logoUrl = siteSettings.logoUrl || "/assets/logo-motoclub-intro.png";
+  const logoUrl = imageUrl(siteSettings.logoUrl === undefined ? "/assets/logo-motoclub-intro.png" : siteSettings.logoUrl);
   const [isDismissed, setIsDismissed] = useState(
     () =>
       typeof window !== "undefined" &&
@@ -56,7 +57,7 @@ export function IntroPresentation() {
       <div className="intro-vignette" aria-hidden="true" />
 
       <div className="intro-content">
-        {failedLogoUrl !== logoUrl ? <div className="intro-logo-shell">
+        {logoUrl && failedLogoUrl !== logoUrl ? <div className="intro-logo-shell">
           <span className="intro-logo-orbit" aria-hidden="true" />
           <Image
             className="intro-logo"

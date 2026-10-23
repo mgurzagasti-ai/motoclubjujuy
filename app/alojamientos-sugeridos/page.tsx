@@ -3,15 +3,18 @@
 import { Footer } from "@/components/footer";
 import { Navbar } from "@/components/navbar";
 import Image from "next/image";
-import { suggestedLodgingExternalHref } from "@/lib/site-data";
+import { useState } from "react";
+import { imageUrl } from "@/lib/public-content";
 import { useMotoclubContent } from "@/lib/use-motoclub-content";
 
 export default function SuggestedLodgingPage() {
   const { siteSettings } = useMotoclubContent();
-  const title = siteSettings.lodgingTitle || "Alojamientos sugeridos";
-  const description = siteSettings.lodgingDescription || "Consultá las opciones de alojamiento para el encuentro.";
-  const linkUrl = siteSettings.lodgingLinkUrl || suggestedLodgingExternalHref;
-  const linkLabel = siteSettings.lodgingLinkLabel || "Ver alojamientos sugeridos";
+  const [failedImage, setFailedImage] = useState("");
+  const title = siteSettings.lodgingTitle ?? "Alojamientos sugeridos";
+  const description = siteSettings.lodgingDescription ?? "Consultá las opciones de alojamiento para el encuentro.";
+  const linkUrl = siteSettings.lodgingLinkUrl?.trim() || "";
+  const linkLabel = siteSettings.lodgingLinkLabel ?? "Ver alojamientos sugeridos";
+  const lodgingImage = imageUrl(siteSettings.lodgingImageUrl);
   return (
     <>
       <Navbar />
@@ -19,31 +22,30 @@ export default function SuggestedLodgingPage() {
         <section className="embedded-page-shell">
           <div className="embedded-page-head">
             <div>
-              <div className="eyebrow">{siteSettings.lodgingEyebrow || "6to Motoencuentro Jujuy"}</div>
-              <h1 className="section-title">{title}</h1>
+              {(siteSettings.lodgingEyebrow ?? "6to Motoencuentro Jujuy").trim() ? <div className="eyebrow">{siteSettings.lodgingEyebrow ?? "6to Motoencuentro Jujuy"}</div> : null}
+              {title.trim() ? <h1 className="section-title">{title}</h1> : null}
             </div>
-            <a
+            {linkUrl && linkLabel.trim() ? <a
               className="btn btn-secondary"
               href={linkUrl}
               target="_blank"
               rel="noreferrer"
             >
               {linkLabel}
-            </a>
+            </a> : null}
           </div>
-          <article className="embedded-page-fallback">
-            <h2>{title}</h2>
-            <p>{description}</p>
-            {siteSettings.lodgingImageUrl ? <Image src={siteSettings.lodgingImageUrl} alt={title} width={900} height={600} style={{ maxWidth: "100%", height: "auto" }} unoptimized /> : null}
-            <a
+          {(description.trim() || (lodgingImage && failedImage !== lodgingImage) || (linkUrl && linkLabel.trim())) ? <article className="embedded-page-fallback">
+            {description.trim() ? <p>{description}</p> : null}
+            {lodgingImage && failedImage !== lodgingImage ? <Image src={lodgingImage} alt={title} width={900} height={600} style={{ maxWidth: "100%", height: "auto" }} unoptimized onError={() => setFailedImage(lodgingImage)} /> : null}
+            {linkUrl && linkLabel.trim() ? <a
               className="btn btn-primary"
               href={linkUrl}
               target="_blank"
               rel="noreferrer"
             >
               {linkLabel}
-            </a>
-          </article>
+            </a> : null}
+          </article> : null}
         </section>
       </main>
       <Footer />

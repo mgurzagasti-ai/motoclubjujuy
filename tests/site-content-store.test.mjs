@@ -74,13 +74,17 @@ function memorySiteContent(initialRow) {
 }
 
 function createWriter(database) {
+  return createStore(database).writeSiteContentState;
+}
+
+function createStore(database) {
   const version = loadTypeScriptModule("lib/site-content-version.ts");
   const store = loadTypeScriptModule("lib/site-content-store.ts", {
     "@/lib/supabase-admin": { getSupabaseAdmin: () => database },
     "@/lib/site-data": { normalizeContent: (content) => content },
     "@/lib/site-content-version": version,
   });
-  return store.writeSiteContentState;
+  return store;
 }
 
 const initialVersion = "2026-10-22T12:35:55.715Z";
@@ -146,4 +150,21 @@ test("un guardado anterior al borrado no restaura la referencia de la foto", asy
   assert.equal(database.writes, 0);
   assert.deepEqual(database.row.fotos, []);
   assert.equal(database.row.quienes, "Contenido inicial");
+});
+
+test("un guardado parcial solo escribe su columna y exige updated_at vigente", async () => {
+  const database = memorySiteContent({ ...initialRow(), events: [{ id: "old", name: "" }] });
+  const { writeSiteContentChanges } = createStore(database);
+  const saved = await writeSiteContentChanges({ settings: { heroTitle: "Portada" } }, initialVersion);
+
+  assert.equal(saved.ok, true);
+  assert.equal(database.row.settings.heroTitle, "Portada");
+  assert.equal(database.row.quienes, "Contenido inicial");
+  assert.deepEqual(database.row.events, [{ id: "old", name: "" }]);
+  assert.deepEqual(database.row.fotos, [deletedPhoto]);
+
+  const stale = await writeSiteContentChanges({ novedades: [] }, initialVersion);
+  assert.equal(stale.ok, false);
+  assert.equal(stale.status, 409);
+  assert.equal(database.writes, 1);
 });

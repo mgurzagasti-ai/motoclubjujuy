@@ -11,6 +11,9 @@ export type SiteSettings = {
   contactTitle?: string;
   footerDescription?: string;
   footerLegal?: string;
+  footerContactTitle?: string;
+  footerContactText?: string;
+  footerCredit?: string;
   logoUrl?: string;
   aboutImageUrl?: string;
   heroEyebrow?: string;

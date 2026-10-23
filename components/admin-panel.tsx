@@ -18,6 +18,7 @@ import {
 } from "@/lib/site-data";
 import { useMotoclubContent } from "@/lib/use-motoclub-content";
 import type { SiteSettings } from "@/lib/site-settings";
+import type { AdminSection } from "@/lib/admin-section-save";
 
 type TextSetting = Exclude<keyof SiteSettings, "contactItems" | "socialItems">;
 const settingFields: { key: TextSetting; label: string }[] = [
@@ -30,6 +31,9 @@ const settingFields: { key: TextSetting; label: string }[] = [
   { key: "contactTitle", label: "Título de contacto" },
   { key: "footerDescription", label: "Descripción del pie de página" },
   { key: "footerLegal", label: "Texto legal del pie de página" },
+  { key: "footerContactTitle", label: "Título de contacto en el pie" },
+  { key: "footerContactText", label: "Texto de contacto en el pie" },
+  { key: "footerCredit", label: "Crédito del pie de página" },
   { key: "logoUrl", label: "URL del logo de cabecera" },
   { key: "aboutImageUrl", label: "URL de imagen institucional" },
   { key: "heroEyebrow", label: "Antetítulo de portada" },
@@ -191,45 +195,17 @@ export function AdminPanel() {
   );
   const newsPreviewItems = useMemo(() => sortNewsNewestFirst(newsDraft), [newsDraft]);
 
-  const formatNewsDate = (createdAt: string) => {
-    const parsed = new Date(createdAt);
-
-    if (Number.isNaN(parsed.getTime())) {
-      return "Sin fecha";
-    }
-
-    return parsed.toLocaleDateString("es-AR", {
-      month: "long",
-      year: "numeric",
-    });
-  };
-
-  const buildNewsTitle = (description: string) => {
-    const normalized = description.replace(/\s+/g, " ").trim();
-
-    if (!normalized) {
-      return "Nueva novedad";
-    }
-
-    if (normalized.length <= 56) {
-      return normalized;
-    }
-
-    return `${normalized.slice(0, 53).trimEnd()}...`;
-  };
-
-  const buildNewsSnapshot = () =>
+  const buildNewsSnapshot = (items: NewsItem[] = newsDraft) =>
     sortNewsNewestFirst(
-      newsDraft.map((item, index) => ({
+      items.map((item) => ({
         ...item,
-        id: item.id || `news-restored-${index}`,
         createdAt: item.createdAt || new Date().toISOString(),
-        title: item.title.trim() || buildNewsTitle(item.description),
-        tag: item.tag.trim() || "Novedad",
-        date: item.date.trim() || formatNewsDate(item.createdAt || new Date().toISOString()),
+        title: item.title.trim(),
+        tag: item.tag.trim(),
+        date: item.date.trim(),
         description: item.description.trim(),
         imageUrl: item.imageUrl.trim(),
-        imageAlt: item.imageAlt.trim() || "Imagen de la novedad",
+        imageAlt: item.imageAlt.trim(),
       }))
     );
 
@@ -268,16 +244,12 @@ export function AdminPanel() {
     }, 2200);
   };
 
-  const persistContent = async (nextSnapshot: typeof content) => {
+  const persistSection = async (section: AdminSection, sectionData: unknown) => {
     const expectedUpdatedAt = getContentVersion();
     if (expectedUpdatedAt === undefined) {
       throw new Error("No se cargó la versión del contenido. Recargá ADMIN antes de guardar.");
     }
 
-    const submittedSnapshot = {
-      ...nextSnapshot,
-      navItems: nextSnapshot.navItems.map((item) => ({ ...item, adminManaged: true })),
-    };
     const response = await fetch("/api/site-content", {
       method: "PUT",
       headers: {
@@ -286,9 +258,8 @@ export function AdminPanel() {
       body: JSON.stringify({
         username: user,
         password: pass,
-        content: submittedSnapshot,
-        featuredEventId: featuredEventDraftId,
-        settings: settingsDraft,
+        section,
+        sectionData,
         expectedUpdatedAt,
       }),
     });
@@ -318,8 +289,12 @@ export function AdminPanel() {
       throw new Error("El servidor guardó el contenido pero no devolvió su versión. Recargá ADMIN antes de seguir.");
     }
 
-    saveContent(payload.content || submittedSnapshot, payload.updatedAt, payload.settings);
-    if (payload.settings) setSettingsDraft(payload.settings);
+    if (!payload.content) {
+      throw new Error("El servidor no devolvió el contenido guardado. Recargá ADMIN antes de seguir.");
+    }
+    saveContent(payload.content, payload.updatedAt, payload.settings);
+    if (section === "settings" && payload.settings) setSettingsDraft(payload.settings);
+    if (section === "events") setFeaturedEventDraftId(payload.featuredEventId ?? "");
     setFeaturedEventId(payload.featuredEventId ?? "");
     setSaveConflict("");
   };
@@ -376,13 +351,8 @@ export function AdminPanel() {
 
   const handleGuardarQuienes = async () => {
     try {
-      await persistContent({
-        ...content,
-        navItems: navDraft,
-        quienes,
-        events: eventsDraft,
-        novedades: newsDraft,
-      });
+      await persistSection("about", quienes);
+      setLoginError("");
       flashMessage(setTextoGuardado, "Texto actualizado correctamente.");
     } catch (saveFailure) {
       setLoginError(
@@ -535,15 +505,9 @@ export function AdminPanel() {
         href: normalizeNavHref(item.href, createDefaultNavItem(index).href),
       }));
 
-      await persistContent({
-        ...content,
-        navItems: normalizedNavItems,
-        quienes,
-        events: eventsDraft,
-        novedades: newsDraft,
-        fotos: content.fotos,
-      });
+      await persistSection("nav", normalizedNavItems.map((item) => ({ ...item, adminManaged: true })));
       setNavDraft(normalizedNavItems);
+      setLoginError("");
       flashMessage(setTextoGuardado, "Menu actualizado correctamente.");
     } catch (saveFailure) {
       setLoginError(
@@ -562,12 +526,9 @@ export function AdminPanel() {
 
     if (editingPhotoIndex !== null && !selectedFile) {
       try {
-        await persistContent({
-          ...content, navItems: navDraft, quienes, events: eventsDraft, novedades: newsDraft,
-          fotos: content.fotos.map((foto, index) => index === editingPhotoIndex
+        await persistSection("photos", content.fotos.map((foto, index) => index === editingPhotoIndex
             ? { ...foto, url: trimmedUrl, titulo: fotoTitulo.trim() || "Nueva imagen", descripcion: fotoDescripcion.trim() }
-            : foto),
-        });
+            : foto));
         resetPhotoForm();
         flashMessage(setFotoGuardada, "Fotografía actualizada.");
       } catch (error) {
@@ -604,16 +565,9 @@ export function AdminPanel() {
           throw new Error(payload.error || "No se pudo subir la imagen.");
         }
 
-        await persistContent({
-          ...content,
-          navItems: navDraft,
-          quienes,
-          events: eventsDraft,
-          novedades: newsDraft,
-          fotos: editingPhotoIndex === null
+        await persistSection("photos", editingPhotoIndex === null
             ? [...content.fotos, payload.photo]
-            : content.fotos.map((foto, index) => index === editingPhotoIndex ? { ...payload.photo!, published: foto.published } : foto),
-        });
+            : content.fotos.map((foto, index) => index === editingPhotoIndex ? { ...payload.photo!, published: foto.published } : foto));
         resetPhotoForm();
         flashMessage(setFotoGuardada, "Imagen subida a Cloudinary y guardada en Supabase.");
       } catch (error) {
@@ -628,13 +582,7 @@ export function AdminPanel() {
     const finalUrl = selectedFile ? await fileToDataUrl(selectedFile) : trimmedUrl;
 
     try {
-      await persistContent({
-        ...content,
-        navItems: navDraft,
-        quienes,
-        events: eventsDraft,
-        novedades: newsDraft,
-        fotos: editingPhotoIndex === null ? [
+      await persistSection("photos", editingPhotoIndex === null ? [
           ...content.fotos, {
             url: finalUrl,
             titulo: fotoTitulo.trim() || "Nueva imagen",
@@ -642,8 +590,7 @@ export function AdminPanel() {
           },
         ] : content.fotos.map((foto, index) => index === editingPhotoIndex ? {
           ...foto, url: finalUrl, titulo: fotoTitulo.trim() || "Nueva imagen", descripcion: fotoDescripcion.trim(),
-        } : foto),
-      });
+        } : foto));
 
       resetPhotoForm();
       flashMessage(setFotoGuardada, "Imagen agregada y guardada en Supabase.");
@@ -712,14 +659,7 @@ export function AdminPanel() {
     }
 
     try {
-      await persistContent({
-        ...content,
-        navItems: navDraft,
-        quienes,
-        events: eventsDraft,
-        novedades: newsDraft,
-        fotos: buildPhotosWithoutIndex(index),
-      });
+      await persistSection("photos", buildPhotosWithoutIndex(index));
       flashMessage(setFotoGuardada, "Imagen eliminada correctamente.");
     } catch (error) {
       setFotoError(error instanceof Error ? error.message : "No se pudo eliminar la imagen.");
@@ -800,7 +740,14 @@ export function AdminPanel() {
   };
 
   const handleAddEvent = () => {
-    const newEvent = createDefaultEvent();
+    const template = createDefaultEvent();
+    const newEvent = {
+      ...Object.fromEntries(Object.entries(template).map(([key, value]) =>
+        [key, Array.isArray(value) ? [] : typeof value === "string" ? "" : value]
+      )) as unknown as ClubEvent,
+      id: template.id,
+      published: false,
+    };
     setEventsDraft((current) => [...current, newEvent]);
     setSelectedEventId(newEvent.id);
   };
@@ -825,13 +772,8 @@ export function AdminPanel() {
 
   const handleSaveEvents = async () => {
     try {
-      await persistContent({
-        ...content,
-        navItems: navDraft,
-        quienes,
-        events: eventsDraft,
-        novedades: newsDraft,
-      });
+      await persistSection("events", { events: eventsDraft, featuredEventId: featuredEventDraftId });
+      setFotoError("");
       flashMessage(setEventoGuardado, "Eventos actualizados correctamente.");
       openSaveModal("El evento se guardo correctamente.");
     } catch (saveFailure) {
@@ -859,7 +801,7 @@ export function AdminPanel() {
   };
 
   const handleAddNews = () => {
-    const newItem = createDefaultNewsItem();
+    const newItem = { ...createDefaultNewsItem(), title: "", tag: "", published: false };
     setNewsDraft((current) => [newItem, ...current]);
     setSelectedNewsId(newItem.id);
     setNewsError("");
@@ -883,17 +825,11 @@ export function AdminPanel() {
     setNewsError("");
   };
 
-  const handleSaveNews = async () => {
+  const saveNews = async (items: NewsItem[]) => {
     try {
-      const normalizedNews = buildNewsSnapshot();
+      const normalizedNews = buildNewsSnapshot(items);
 
-      await persistContent({
-        ...content,
-        navItems: navDraft,
-        quienes,
-        events: eventsDraft,
-        novedades: normalizedNews,
-      });
+      await persistSection("news", normalizedNews);
       setNewsDraft(normalizedNews);
       flashMessage(setNovedadGuardada, "Cambios de novedades guardados correctamente.");
       setNewsError("");
@@ -903,6 +839,16 @@ export function AdminPanel() {
         saveFailure instanceof Error ? saveFailure.message : "No se pudieron guardar las novedades."
       );
     }
+  };
+
+  const handleSaveNews = () => saveNews(newsDraft);
+
+  const handleToggleSelectedNews = () => {
+    if (!selectedNews) return;
+    const nextNews = newsDraft.map((item) => item.id === selectedNews.id
+      ? { ...item, published: item.published === false }
+      : item);
+    void saveNews(nextNews);
   };
 
   if (!isAdmin) {
@@ -1001,11 +947,15 @@ export function AdminPanel() {
               </div>
             ))}
             <button type="button" className="ghost-btn" onClick={() => setSettingsDraft((current) => ({ ...current, [field]: [...(current[field] ?? []), { label: "", value: "" }] }))}>Agregar</button>
+            <button type="button" className="ghost-btn" onClick={() => setSettingsDraft((current) => ({ ...current, [field]: [] }))}>
+              {field === "contactItems" ? "Ocultar todos los contactos" : "Ocultar todas las redes"}
+            </button>
           </div>
         ))}
         <button type="button" onClick={async () => {
           try {
-            await persistContent({ ...content, navItems: navDraft, quienes, events: eventsDraft, novedades: newsDraft });
+            await persistSection("settings", settingsDraft);
+            setLoginError("");
             flashMessage(setTextoGuardado, "Configuración guardada.");
           } catch (error) {
             setLoginError(error instanceof Error ? error.message : "No se pudo guardar la configuración.");
@@ -1726,6 +1676,9 @@ export function AdminPanel() {
                   <option value="published">Publicada</option>
                   <option value="hidden">Oculta</option>
                 </select>
+                <button type="button" className="ghost-btn" onClick={handleToggleSelectedNews}>
+                  {selectedNews.published === false ? "Publicar novedad" : "Ocultar novedad"}
+                </button>
               </div>
             </div>
 
@@ -1877,8 +1830,8 @@ export function AdminPanel() {
                 }}>Editar o reemplazar</button>
                 <button type="button" className="ghost-btn" onClick={async () => {
                   try {
-                    await persistContent({ ...content, navItems: navDraft, quienes, events: eventsDraft, novedades: newsDraft,
-                      fotos: content.fotos.map((item, i) => i === index ? { ...item, published: item.published === false } : item) });
+                    await persistSection("photos", content.fotos.map((item, i) => i === index ? { ...item, published: item.published === false } : item));
+                    setFotoError("");
                     flashMessage(setFotoGuardada, foto.published === false ? "Fotografía publicada." : "Fotografía oculta.");
                   } catch (error) {
                     setFotoError(error instanceof Error ? error.message : "No se pudo cambiar la publicación.");

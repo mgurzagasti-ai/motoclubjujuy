@@ -22,6 +22,15 @@ export type SiteContentState = {
   updatedAt?: string;
 };
 
+export type SiteContentChanges = Partial<{
+  nav_items: MotoclubContent["navItems"];
+  quienes: string;
+  fotos: MotoclubContent["fotos"];
+  events: MotoclubContent["events"];
+  novedades: MotoclubContent["novedades"];
+  settings: SiteSettings;
+}>;
+
 const baseSelect = "slug, nav_items, quienes, fotos, events, novedades, updated_at";
 const extendedSelect = `${baseSelect}, settings`;
 
@@ -196,4 +205,38 @@ export async function writeSiteContentState(state: SiteContentState) {
     ok: true as const,
     state: toSiteContentState(hasSettings ? row : { ...row, settings: null }),
   };
+}
+
+export async function writeSiteContentChanges(changes: SiteContentChanges, updatedAt?: string) {
+  const admin = getSupabaseAdmin();
+  if (!admin) {
+    return { ok: false as const, status: 500, error: "Supabase no está configurado." };
+  }
+  if (!updatedAt) {
+    return { ok: false as const, status: 409, error: "No se pudo comprobar la versión del contenido. Recargá ADMIN." };
+  }
+
+  const { data, error } = await admin.from("site_content")
+    .update({ ...changes, updated_at: nextSiteContentUpdatedAt(updatedAt, Date.now()) })
+    .eq("slug", "main")
+    .eq("updated_at", updatedAt)
+    .select(extendedSelect)
+    .maybeSingle();
+
+  if (error) {
+    return {
+      ok: false as const,
+      status: 500,
+      error: "No se pudo guardar la sección en Supabase.",
+      detail: error.message,
+    };
+  }
+  if (!data) {
+    return {
+      ok: false as const,
+      status: 409,
+      error: "El contenido cambió mientras se guardaba. Recargá ADMIN; no se sobrescribieron otros cambios.",
+    };
+  }
+  return { ok: true as const, state: toSiteContentState(data as SiteContentRow) };
 }

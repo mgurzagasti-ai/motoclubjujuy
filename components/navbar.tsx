@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useMotoclubContent } from "@/lib/use-motoclub-content";
+import { imageUrl } from "@/lib/public-content";
 
 function getSectionIdFromHref(href: string) {
   const match = href.match(/#(.+)$/);
@@ -18,10 +19,12 @@ export function Navbar() {
   const { content, siteSettings, contentReady } = useMotoclubContent();
   const [activeSection, setActiveSection] = useState("inicio");
   const [failedLogoUrl, setFailedLogoUrl] = useState<string | null>(null);
-  const logoUrl = siteSettings.logoUrl || "/assets/logo-motoclub-intro.png";
+  const logoUrl = imageUrl(siteSettings.logoUrl === undefined ? "/assets/logo-motoclub-intro.png" : siteSettings.logoUrl);
+  const clubName = siteSettings.clubName ?? "Moto Club Jujuy";
+  const clubTagline = siteSettings.clubTagline ?? "@motoclubjujuy.oficial";
   const navLinks = useMemo(
     () =>
-      (contentReady ? content.navItems : []).filter((item) => item.visible !== false).map((item) => ({
+      (contentReady ? content.navItems : []).filter((item) => item.visible !== false && item.label.trim() && item.href.trim()).map((item) => ({
         id: item.id,
         href: item.href,
         label: item.label,
@@ -76,12 +79,12 @@ export function Navbar() {
 
   return (
     <nav className="navbar">
-      <Link className="brand" href="/#inicio">
-        {failedLogoUrl !== logoUrl ? <span className="brand-logo-shell">
+      {(logoUrl || clubName.trim() || clubTagline.trim()) ? <Link className="brand" href="/#inicio">
+        {logoUrl && failedLogoUrl !== logoUrl ? <span className="brand-logo-shell">
           <Image
             className="brand-logo"
             src={logoUrl}
-            alt={`Logo de ${siteSettings.clubName || "Moto Club Jujuy"}`}
+            alt={`Logo de ${clubName}`}
             width={58}
             height={58}
             priority
@@ -89,11 +92,11 @@ export function Navbar() {
             onError={() => setFailedLogoUrl(logoUrl)}
           />
         </span> : null}
-        <div className="brand-copy">
-          <strong>{siteSettings.clubName || "Moto Club Jujuy"}</strong>
-          <span>{siteSettings.clubTagline || "@motoclubjujuy.oficial"}</span>
-        </div>
-      </Link>
+        {(clubName.trim() || clubTagline.trim()) ? <div className="brand-copy">
+          {clubName.trim() ? <strong>{clubName}</strong> : null}
+          {clubTagline.trim() ? <span>{clubTagline}</span> : null}
+        </div> : null}
+      </Link> : null}
 
       <div className="nav-links">
         {navLinks.map((item) => (

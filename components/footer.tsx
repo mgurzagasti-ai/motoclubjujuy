@@ -211,6 +211,9 @@ export function Footer() {
 
     return links;
   }, [featuredEvent?.registrationHref, featuredEvent?.socialItems, siteSettings.socialItems]);
+  const contactTitle = siteSettings.footerContactTitle ?? "Seguinos y escribinos";
+  const contactText = siteSettings.footerContactText ?? "Encontranos en redes y mantenete al tanto de las novedades del club.";
+  const credit = siteSettings.footerCredit ?? "Martin Urzagasti";
 
   if (!contentReady) {
     return null;
@@ -221,9 +224,9 @@ export function Footer() {
       <div className="footer-card">
         <div className="footer-top">
           <div className="footer-brand-block">
-            <span className="footer-eyebrow">{siteSettings.clubName || "Moto Club Jujuy"}</span>
-            <strong>{siteSettings.clubTagline || "Comunidad, ruta y encuentros con identidad jujeña"}</strong>
-            <p>{siteSettings.footerDescription || "Pasion por las dos ruedas, nuevas rutas y una comunidad abierta a todos los motociclistas."}</p>
+            {siteSettings.clubName !== "" ? <span className="footer-eyebrow">{siteSettings.clubName ?? "Moto Club Jujuy"}</span> : null}
+            {siteSettings.clubTagline !== "" ? <strong>{siteSettings.clubTagline ?? "Comunidad, ruta y encuentros con identidad jujeña"}</strong> : null}
+            {siteSettings.footerDescription !== "" ? <p>{siteSettings.footerDescription ?? "Pasion por las dos ruedas, nuevas rutas y una comunidad abierta a todos los motociclistas."}</p> : null}
           </div>
 
           <div className="footer-counter">
@@ -235,14 +238,13 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="footer-bottom">
+        {(contactTitle.trim() || contactText.trim() || socialLinks.length > 0) ? <div className="footer-bottom">
           <div className="footer-copy">
-            <strong>Seguinos y escribinos</strong>
-            <p>Encontranos en redes y mantenete al tanto de las novedades del club.</p>
+            {contactTitle.trim() ? <strong>{contactTitle}</strong> : null}
+            {contactText.trim() ? <p>{contactText}</p> : null}
           </div>
 
           <div className="footer-socials">
-            {socialLinks.length === 0 ? <span>Pronto publicaremos nuestros enlaces de contacto.</span> : null}
             {socialLinks.map((item, index) => {
               const iconAsset = getSocialIconAsset(item.label);
 
@@ -270,11 +272,11 @@ export function Footer() {
               );
             })}
           </div>
-        </div>
+        </div> : null}
 
         <div className="footer-legal">
-          <span>{siteSettings.footerLegal || "Pasion por las dos ruedas (c) 2026"}</span>
-          <span>Martin Urzagasti</span>
+          {siteSettings.footerLegal !== "" ? <span>{siteSettings.footerLegal ?? "Pasion por las dos ruedas (c) 2026"}</span> : null}
+          {credit.trim() ? <span>{credit}</span> : null}
         </div>
       </div>
     </footer>

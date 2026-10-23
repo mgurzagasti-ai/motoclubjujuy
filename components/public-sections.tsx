@@ -294,16 +294,18 @@ export function PublicSections() {
   ));
   const showEventSection = Boolean(featuredEvent && (eventDays.length || showRegistration || extraEvents.length));
   const registrationHref = buildRegistrationHref(featuredEvent?.registrationHref);
-  const heroImage = visibleImage(siteSettings.heroImage) || visibleImage(featuredEvent?.posterUrl);
-  const heroPrimaryHref = siteSettings.heroPrimaryHref?.trim() || (showEventSection ? "#evento" : "");
-  const showHeroButton = Boolean(heroPrimaryHref && (heroPrimaryHref !== "#evento" || showEventSection));
-  const heroSecondaryHref = siteSettings.heroSecondaryHref?.trim() || registrationHref || "";
-  const showSecondaryButton = Boolean(heroSecondaryHref && (heroSecondaryHref !== "#evento" || showEventSection));
+  const heroImage = visibleImage(siteSettings.heroImage === undefined ? featuredEvent?.posterUrl : siteSettings.heroImage);
+  const heroPrimaryHref = siteSettings.heroPrimaryHref === undefined ? (showEventSection ? "#evento" : "") : siteSettings.heroPrimaryHref.trim();
+  const heroSecondaryHref = siteSettings.heroSecondaryHref === undefined ? registrationHref || "" : siteSettings.heroSecondaryHref.trim();
+  const heroPrimaryLabel = siteSettings.heroPrimaryLabel ?? (heroPrimaryHref === "#evento" ? "Ver evento" : "Conocer más");
+  const heroSecondaryLabel = siteSettings.heroSecondaryLabel ?? (featuredEvent?.registrationLabel || "Más información");
+  const showHeroButton = Boolean(heroPrimaryHref && heroPrimaryLabel.trim() && (heroPrimaryHref !== "#evento" || showEventSection));
+  const showSecondaryButton = Boolean(heroSecondaryHref && heroSecondaryLabel.trim() && (heroSecondaryHref !== "#evento" || showEventSection));
   const showStandaloneHero = !featuredEvent && Boolean(
     hasText(siteSettings.heroTitle) || hasText(siteSettings.heroSubtitle) || heroImage
   );
   const aboutText = content.quienes.replace(/<[^>]*>/g, " ").replace(/&nbsp;/gi, " ").trim();
-  const aboutImage = visibleImage(siteSettings.aboutImageUrl || (aboutText ? "/assets/logo-motoclub.jpeg" : ""));
+  const aboutImage = visibleImage(siteSettings.aboutImageUrl === undefined ? (aboutText ? "/assets/logo-motoclub.jpeg" : "") : siteSettings.aboutImageUrl);
   const contactItems = (siteSettings.contactItems ?? featuredEvent?.contactItems ?? [])
     .filter((item) => hasText(item.label) && hasText(item.value));
   const socialItems = (siteSettings.socialItems ?? featuredEvent?.socialItems ?? [])
@@ -324,18 +326,18 @@ export function PublicSections() {
           <>
             <div className={`hero${heroImage ? "" : " hero--text-only"}`}>
               <div className="hero-copy">
-                {hasText(siteSettings.heroEyebrow || featuredEvent.heroEyebrow) ? <div className="eyebrow">{siteSettings.heroEyebrow || featuredEvent.heroEyebrow}</div> : null}
-                <h1>
+                {hasText(siteSettings.heroEyebrow ?? featuredEvent.heroEyebrow) ? <div className="eyebrow">{siteSettings.heroEyebrow ?? featuredEvent.heroEyebrow}</div> : null}
+                {siteSettings.heroTitle !== "" ? <h1>
                   {hasText(siteSettings.heroTitle)
                     ? siteSettings.heroTitle
                     : hasText(featuredEvent.heroHeadlinePrefix) || hasText(featuredEvent.heroHeadlineHighlight)
                       ? <>{featuredEvent.heroHeadlinePrefix}{" "}<span>{featuredEvent.heroHeadlineHighlight}</span></>
                       : featuredEvent.name}
-                </h1>
-                {hasText(siteSettings.heroSubtitle || featuredEvent.heroDescription) ? <p>{siteSettings.heroSubtitle || featuredEvent.heroDescription}</p> : null}
+                </h1> : null}
+                {hasText(siteSettings.heroSubtitle ?? featuredEvent.heroDescription) ? <p>{siteSettings.heroSubtitle ?? featuredEvent.heroDescription}</p> : null}
                 {(showHeroButton || showSecondaryButton) ? <div className="hero-actions">
                   {showHeroButton ? <a className="btn btn-primary" href={heroPrimaryHref}>
-                    {siteSettings.heroPrimaryLabel || (heroPrimaryHref === "#evento" ? "Ver evento" : "Conocer más")}
+                    {heroPrimaryLabel}
                   </a> : null}
                   {showSecondaryButton ? (
                     <a
@@ -344,7 +346,7 @@ export function PublicSections() {
                       target="_blank"
                       rel="noreferrer"
                     >
-                      {siteSettings.heroSecondaryLabel || featuredEvent.registrationLabel || "Más información"}
+                      {heroSecondaryLabel}
                     </a>
                   ) : null}
                 </div> : null}
@@ -415,8 +417,8 @@ export function PublicSections() {
               {hasText(siteSettings.heroTitle) ? <h1>{siteSettings.heroTitle}</h1> : null}
               {hasText(siteSettings.heroSubtitle) ? <p>{siteSettings.heroSubtitle}</p> : null}
               {(showHeroButton || showSecondaryButton) ? <div className="hero-actions">
-                {showHeroButton ? <a className="btn btn-primary" href={heroPrimaryHref}>{siteSettings.heroPrimaryLabel || "Conocer más"}</a> : null}
-                {showSecondaryButton ? <a className="btn btn-secondary" href={heroSecondaryHref} target="_blank" rel="noreferrer">{siteSettings.heroSecondaryLabel || "Más información"}</a> : null}
+                {showHeroButton ? <a className="btn btn-primary" href={heroPrimaryHref}>{heroPrimaryLabel}</a> : null}
+                {showSecondaryButton ? <a className="btn btn-secondary" href={heroSecondaryHref} target="_blank" rel="noreferrer">{heroSecondaryLabel}</a> : null}
               </div> : null}
             </div>
             {heroImage ? <div className="hero-visual"><Image src={heroImage} alt={siteSettings.heroTitle || "Imagen de portada"} width={900} height={900} className="poster-image" unoptimized onError={() => markImageFailed(heroImage)} /></div> : null}
@@ -504,7 +506,7 @@ export function PublicSections() {
       ) : null}
 
       {novedades.length > 0 ? <section id="novedades" className="page active-page">
-        <h2 className="section-title">{siteSettings.newsTitle || <>Ultimas <span>novedades</span></>}</h2>
+        {siteSettings.newsTitle !== "" ? <h2 className="section-title">{siteSettings.newsTitle ?? <>Ultimas <span>novedades</span></>}</h2> : null}
         <div className="news-grid">
           {novedades.map((item, index) => (
             <article className="news-card" key={item.id}>
@@ -538,7 +540,7 @@ export function PublicSections() {
       </section> : null}
 
       {(aboutText || aboutImage) ? <section id="quienes" className="page active-page">
-        <h2 className="section-title">{siteSettings.aboutTitle || <>La esencia del <span>club</span></>}</h2>
+        {siteSettings.aboutTitle !== "" ? <h2 className="section-title">{siteSettings.aboutTitle ?? <>La esencia del <span>club</span></>}</h2> : null}
         <div className={`about-grid${aboutImage && aboutText ? "" : " about-grid--single"}`}>
           {aboutImage ? <div className="logo-showcase panel">
             <Image
@@ -557,12 +559,12 @@ export function PublicSections() {
       </section> : null}
 
       {photos.length > 0 ? <section id="fotos" className="page active-page">
-        <h2 className="section-title">{siteSettings.galleryTitle || <>Postales de <span>ruta</span></>}</h2>
+        {siteSettings.galleryTitle !== "" ? <h2 className="section-title">{siteSettings.galleryTitle ?? <>Postales de <span>ruta</span></>}</h2> : null}
         <PhotoCarousel fotos={photos} onImageError={markImageFailed} />
       </section> : null}
 
       {(hasText(siteSettings.contactText) || contactItems.length > 0 || socialItems.length > 0) ? <section className="section-block" id="contacto">
-        <h2 className="section-title">{siteSettings.contactTitle || <>Contacto y <span>redes</span></>}</h2>
+        {siteSettings.contactTitle !== "" ? <h2 className="section-title">{siteSettings.contactTitle ?? <>Contacto y <span>redes</span></>}</h2> : null}
         {hasText(siteSettings.contactText) ? <p>{siteSettings.contactText}</p> : null}
         {(contactItems.length > 0 || socialItems.length > 0) ? <div className={`contact-grid${contactItems.length && socialItems.length ? "" : " contact-grid--single"}`}>
           {socialItems.length > 0 ? <article className="panel">

@@ -3,7 +3,8 @@ import { createApiAuthError, isApiTokenValid } from "@/lib/api-auth";
 import { mergeApiSiteContent, toApiSiteContent } from "@/lib/motoclub-api";
 import { normalizeContent } from "@/lib/site-data";
 import { getSupabaseAdmin, validateAdminCredentials } from "@/lib/supabase-admin";
-import { readSiteContentState, writeSiteContentState } from "@/lib/site-content-store";
+import { readSiteContentState, writeSiteContentChanges, writeSiteContentState } from "@/lib/site-content-store";
+import { prepareAdminSectionChanges } from "@/lib/admin-section-save";
 import { isSiteContentVersionCurrent } from "@/lib/site-content-version";
 import type { SiteSettings } from "@/lib/site-settings";
 
@@ -89,6 +90,8 @@ export async function PUT(request: Request) {
     username?: string;
     password?: string;
     content?: unknown;
+    section?: unknown;
+    sectionData?: unknown;
     expectedUpdatedAt?: string | null;
     updatedAt?: string;
     heroTitle?: string;
@@ -106,6 +109,47 @@ export async function PUT(request: Request) {
     }
   } catch {
     return NextResponse.json({ error: "Solicitud inválida." }, { status: 400 });
+  }
+
+  if (payload.section !== undefined) {
+    if (payload.content !== undefined) {
+      return NextResponse.json({ error: "Guardá una sección por solicitud." }, { status: 400 });
+    }
+    if (!getSupabaseAdmin()) {
+      return NextResponse.json({ error: "Falta configurar SUPABASE_SERVICE_ROLE_KEY en el servidor." }, { status: 500 });
+    }
+    if (!validateAdminCredentials(payload.username, payload.password)) {
+      return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+    }
+    if (!Object.prototype.hasOwnProperty.call(payload, "expectedUpdatedAt") ||
+      (payload.expectedUpdatedAt !== null &&
+        (typeof payload.expectedUpdatedAt !== "string" || !payload.expectedUpdatedAt))) {
+      return NextResponse.json({ error: "Falta la versión del contenido. Recargá ADMIN antes de guardar." }, { status: 428 });
+    }
+
+    const current = await readSiteContentState();
+    if (!current.ok) {
+      return NextResponse.json({ error: current.error, detail: current.detail }, { status: current.status });
+    }
+    if (!isSiteContentVersionCurrent(payload.expectedUpdatedAt, current.state.updatedAt)) {
+      return NextResponse.json({ error: "El contenido cambió en otra pestaña. No se guardó; tus ediciones siguen en el formulario. Copialas antes de recargar." }, { status: 409 });
+    }
+
+    const prepared = prepareAdminSectionChanges(payload.section, payload.sectionData, current.state);
+    if (!prepared.ok) {
+      return NextResponse.json({ error: prepared.error }, { status: 400 });
+    }
+    const saved = await writeSiteContentChanges(prepared.changes, current.state.updatedAt);
+    if (!saved.ok) {
+      return NextResponse.json({ error: saved.error, detail: saved.detail }, { status: saved.status });
+    }
+    return NextResponse.json({
+      ok: true,
+      content: saved.state.content,
+      settings: saved.state.settings,
+      featuredEventId: saved.state.settings.featuredEventId || "",
+      updatedAt: saved.state.updatedAt ?? null,
+    });
   }
 
   if (payload.content !== undefined) {

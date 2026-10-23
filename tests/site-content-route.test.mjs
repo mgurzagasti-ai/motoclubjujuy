@@ -52,6 +52,7 @@ function createRoute() {
       toApiSiteContent: () => ({}),
     },
     "@/lib/site-data": { normalizeContent: (content) => content },
+    "@/lib/admin-section-save": { prepareAdminSectionChanges: () => { throw new Error("Unexpected section save"); } },
     "@/lib/supabase-admin": {
       getSupabaseAdmin: () => ({}),
       validateAdminCredentials: () => true,
