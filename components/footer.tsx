@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { hasSupabaseConfig, supabase } from "@/lib/supabase";
+import { publishedEvents } from "@/lib/public-content";
 import { useMotoclubContent } from "@/lib/use-motoclub-content";
 
 const visitStorageKey = "motoclub_visit_count";
@@ -115,9 +116,9 @@ export function Footer() {
   const { content, featuredEventId, siteSettings, contentReady } = useMotoclubContent();
   const [visitCount, setVisitCount] = useState(0);
   const [counterSource, setCounterSource] = useState<"supabase" | "local">("local");
-  const publishedEvents = content.events.filter((event) => event.published !== false);
+  const visibleEvents = publishedEvents(content.events);
   const featuredEvent =
-    publishedEvents.find((event) => event.id === featuredEventId) ?? publishedEvents[0] ?? null;
+    visibleEvents.find((event) => event.id === featuredEventId) ?? visibleEvents[0] ?? null;
 
   useEffect(() => {
     if (typeof window === "undefined") {

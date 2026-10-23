@@ -6,13 +6,14 @@ import type { MotoPhoto } from "@/lib/site-data";
 
 type PhotoCarouselProps = {
   fotos: MotoPhoto[];
+  onImageError?: (url: string) => void;
 };
 
-export function PhotoCarousel({ fotos }: PhotoCarouselProps) {
+export function PhotoCarousel({ fotos, onImageError }: PhotoCarouselProps) {
   const carouselId = useId().replace(/:/g, "");
   const carouselRef = useRef<HTMLDivElement | null>(null);
-  const [zoomedPhotoIndex, setZoomedPhotoIndex] = useState<number | null>(null);
-  const zoomedPhoto = zoomedPhotoIndex === null ? null : fotos[zoomedPhotoIndex];
+  const [zoomedPhotoUrl, setZoomedPhotoUrl] = useState<string | null>(null);
+  const zoomedPhoto = zoomedPhotoUrl === null ? null : fotos.find((foto) => foto.url === zoomedPhotoUrl);
 
   useEffect(() => {
     let instance: { dispose?: () => void } | undefined;
@@ -38,14 +39,10 @@ export function PhotoCarousel({ fotos }: PhotoCarouselProps) {
     return () => {
       instance?.dispose?.();
     };
-  }, []);
+  }, [fotos.length]);
 
   if (!fotos.length) {
-    return (
-      <p className="small" style={{ marginTop: "1rem" }}>
-        Todavía no hay imágenes cargadas.
-      </p>
-    );
+    return null;
   }
 
   return (
@@ -56,7 +53,7 @@ export function PhotoCarousel({ fotos }: PhotoCarouselProps) {
         className="carousel slide motoclub-carousel"
         data-bs-touch="true"
       >
-        <div className="carousel-indicators">
+        {fotos.length > 1 ? <div className="carousel-indicators">
           {fotos.map((foto, index) => (
             <button
               key={`${foto.url}-indicator-${index}`}
@@ -68,7 +65,7 @@ export function PhotoCarousel({ fotos }: PhotoCarouselProps) {
               aria-label={`Ir a la imagen ${index + 1}`}
             />
           ))}
-        </div>
+        </div> : null}
 
         <div className="carousel-inner">
           {fotos.map((foto, index) => (
@@ -79,10 +76,10 @@ export function PhotoCarousel({ fotos }: PhotoCarouselProps) {
               <button
                 type="button"
                 className="motoclub-carousel-frame"
-                onClick={() => setZoomedPhotoIndex(index)}
+                onClick={() => setZoomedPhotoUrl(foto.url)}
                 aria-label={`Ampliar foto ${foto.titulo}`}
               >
-                <img src={foto.url} alt={foto.titulo} loading="lazy" />
+                <img src={foto.url} alt={foto.titulo} loading="lazy" onError={() => onImageError?.(foto.url)} />
               </button>
               <div className="motoclub-carousel-caption">
                 <strong>{foto.titulo}</strong>
@@ -90,7 +87,7 @@ export function PhotoCarousel({ fotos }: PhotoCarouselProps) {
                 <button
                   type="button"
                   className="day-zoom-btn"
-                  onClick={() => setZoomedPhotoIndex(index)}
+                  onClick={() => setZoomedPhotoUrl(foto.url)}
                 >
                   Ver mas grande
                 </button>
@@ -99,7 +96,7 @@ export function PhotoCarousel({ fotos }: PhotoCarouselProps) {
           ))}
         </div>
 
-        <button
+        {fotos.length > 1 ? <button
           className="carousel-control-prev"
           type="button"
           data-bs-target={`#${carouselId}`}
@@ -109,9 +106,9 @@ export function PhotoCarousel({ fotos }: PhotoCarouselProps) {
           <span className="motoclub-carousel-control" aria-hidden="true">
             ‹
           </span>
-        </button>
+        </button> : null}
 
-        <button
+        {fotos.length > 1 ? <button
           className="carousel-control-next"
           type="button"
           data-bs-target={`#${carouselId}`}
@@ -121,14 +118,14 @@ export function PhotoCarousel({ fotos }: PhotoCarouselProps) {
           <span className="motoclub-carousel-control" aria-hidden="true">
             ›
           </span>
-        </button>
+        </button> : null}
       </div>
 
       {zoomedPhoto ? (
         <div
           className="event-zoom-backdrop"
           role="presentation"
-          onClick={() => setZoomedPhotoIndex(null)}
+          onClick={() => setZoomedPhotoUrl(null)}
         >
           <div
             className="event-zoom-card"
@@ -140,13 +137,13 @@ export function PhotoCarousel({ fotos }: PhotoCarouselProps) {
             <button
               type="button"
               className="event-zoom-close"
-              onClick={() => setZoomedPhotoIndex(null)}
+              onClick={() => setZoomedPhotoUrl(null)}
               aria-label="Cerrar ampliacion de foto"
             >
               Cerrar
             </button>
             <div className="event-zoom-image">
-              <img src={zoomedPhoto.url} alt={zoomedPhoto.titulo} loading="lazy" />
+              <img src={zoomedPhoto.url} alt={zoomedPhoto.titulo} loading="lazy" onError={() => onImageError?.(zoomedPhoto.url)} />
             </div>
             <div className="event-zoom-copy">
               <strong id="gallery-zoom-title">{zoomedPhoto.titulo}</strong>

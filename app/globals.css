@@ -822,6 +822,12 @@ img[data-nimg] {
   padding: 2rem 0 1rem;
 }
 
+.hero--text-only,
+.about-grid.about-grid--single,
+.contact-grid.contact-grid--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .hero-copy {
   min-width: 0;
 }
@@ -1485,8 +1491,9 @@ img[data-nimg] {
 
 .news-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
   gap: 1.2rem;
+  align-items: start;
 }
 
 .news-card {

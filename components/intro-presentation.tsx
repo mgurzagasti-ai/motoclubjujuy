@@ -8,6 +8,8 @@ const INTRO_SEEN_KEY = "motoclub-intro-seen";
 
 export function IntroPresentation() {
   const { siteSettings } = useMotoclubContent();
+  const [failedLogoUrl, setFailedLogoUrl] = useState<string | null>(null);
+  const logoUrl = siteSettings.logoUrl || "/assets/logo-motoclub-intro.png";
   const [isDismissed, setIsDismissed] = useState(
     () =>
       typeof window !== "undefined" &&
@@ -54,18 +56,19 @@ export function IntroPresentation() {
       <div className="intro-vignette" aria-hidden="true" />
 
       <div className="intro-content">
-        <div className="intro-logo-shell">
+        {failedLogoUrl !== logoUrl ? <div className="intro-logo-shell">
           <span className="intro-logo-orbit" aria-hidden="true" />
           <Image
             className="intro-logo"
-            src={siteSettings.logoUrl || "/assets/logo-motoclub-intro.png"}
+            src={logoUrl}
             alt={siteSettings.clubName || "Moto Club Jujuy Argentina"}
             width={512}
             height={512}
             priority
             unoptimized
+            onError={() => setFailedLogoUrl(logoUrl)}
           />
-        </div>
+        </div> : null}
 
         <a className="intro-enter-btn" href="#sitio" onClick={handleEnter}>
           {siteSettings.introButtonLabel || "Ingresar a la pagina"}

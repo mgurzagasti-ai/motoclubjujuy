@@ -17,6 +17,8 @@ function isExternalHref(href: string) {
 export function Navbar() {
   const { content, siteSettings, contentReady } = useMotoclubContent();
   const [activeSection, setActiveSection] = useState("inicio");
+  const [failedLogoUrl, setFailedLogoUrl] = useState<string | null>(null);
+  const logoUrl = siteSettings.logoUrl || "/assets/logo-motoclub-intro.png";
   const navLinks = useMemo(
     () =>
       (contentReady ? content.navItems : []).filter((item) => item.visible !== false).map((item) => ({
@@ -75,17 +77,18 @@ export function Navbar() {
   return (
     <nav className="navbar">
       <Link className="brand" href="/#inicio">
-        <span className="brand-logo-shell">
+        {failedLogoUrl !== logoUrl ? <span className="brand-logo-shell">
           <Image
             className="brand-logo"
-            src={siteSettings.logoUrl || "/assets/logo-motoclub-intro.png"}
+            src={logoUrl}
             alt={`Logo de ${siteSettings.clubName || "Moto Club Jujuy"}`}
             width={58}
             height={58}
             priority
             unoptimized
+            onError={() => setFailedLogoUrl(logoUrl)}
           />
-        </span>
+        </span> : null}
         <div className="brand-copy">
           <strong>{siteSettings.clubName || "Moto Club Jujuy"}</strong>
           <span>{siteSettings.clubTagline || "@motoclubjujuy.oficial"}</span>

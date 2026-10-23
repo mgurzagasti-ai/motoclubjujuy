@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { defaultContent, MotoclubContent, normalizeContent, storageKey } from "@/lib/site-data";
+import { publishedEvents } from "@/lib/public-content";
 import { hasSupabaseConfig, supabase } from "@/lib/supabase";
 import type { SiteSettings } from "@/lib/site-settings";
 
@@ -117,16 +118,17 @@ export function useMotoclubContent() {
               events: data.events,
               novedades: data.novedades,
             }
-          : null
+          : emptyContent
       );
       const updatedAt = data?.updated_at ?? null;
       const settings = data?.settings as SiteSettings | null | undefined;
       setSiteSettings(settings || {});
+      const visibleEvents = publishedEvents(nextContent.events);
       const nextFeaturedEventId =
         typeof settings?.featuredEventId === "string" &&
-        nextContent.events.some((event) => event.id === settings.featuredEventId && event.published !== false)
+        visibleEvents.some((event) => event.id === settings.featuredEventId)
           ? settings.featuredEventId
-          : nextContent.events.find((event) => event.published !== false)?.id ?? "";
+          : visibleEvents[0]?.id ?? "";
 
       contentVersionRef.current = updatedAt;
       setContent(nextContent);
@@ -136,10 +138,12 @@ export function useMotoclubContent() {
       return { content: nextContent, updatedAt, featuredEventId: nextFeaturedEventId, settings: settings || {} };
     } catch {
       if (requestId === refreshSequenceRef.current) {
-        const localContent = readStoredContent(false);
-        setContent(localContent);
-        setFeaturedEventId(localContent.events.find((event) => event.published !== false)?.id ?? "");
-        setContentSource("local");
+        if (contentVersionRef.current === undefined) {
+          setContent(emptyContent);
+          setFeaturedEventId("");
+          setSiteSettings({});
+          setContentSource("local");
+        }
         setContentReady(true);
       }
       return null;
@@ -204,8 +208,11 @@ export function useMotoclubContent() {
 
   useEffect(() => {
     let isMounted = true;
-    const syncFromStorage = () => {
+    const syncFromStorage = (event?: StorageEvent) => {
       if (hasSupabaseConfig()) {
+        if (event && (event.key === storageKey || event.key === null)) {
+          void refreshSupabaseContent();
+        }
         return;
       }
 
@@ -218,7 +225,7 @@ export function useMotoclubContent() {
         novedades: localContent.novedades,
         fotos: current.fotos.length ? current.fotos : localContent.fotos,
       }));
-      setFeaturedEventId(localContent.events.find((event) => event.published !== false)?.id ?? "");
+      setFeaturedEventId(publishedEvents(localContent.events)[0]?.id ?? "");
       setContentSource("local");
     };
 
@@ -260,7 +267,12 @@ export function useMotoclubContent() {
       novedades: nextContent.novedades,
       fotos: nextContent.fotos,
     });
-    setFeaturedEventId(nextContent.events[0]?.id ?? "");
+    const visibleEvents = publishedEvents(nextContent.events);
+    setFeaturedEventId(
+      visibleEvents.find((event) => event.id === settings?.featuredEventId)?.id ??
+      visibleEvents.find((event) => event.id === featuredEventId)?.id ??
+      visibleEvents[0]?.id ?? ""
+    );
     if (settings) setSiteSettings(settings);
     setContentReady(true);
 
