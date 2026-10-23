@@ -1,13 +1,9 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { normalizeContent, type MotoclubContent } from "@/lib/site-data";
+import { nextSiteContentUpdatedAt } from "@/lib/site-content-version";
+import type { SiteSettings } from "@/lib/site-settings";
 
-export type SiteSettings = {
-  heroTitle?: string;
-  heroSubtitle?: string;
-  heroImage?: string;
-  contactText?: string;
-  featuredEventId?: string;
-};
+export type { SiteSettings } from "@/lib/site-settings";
 
 type SiteContentRow = {
   slug: string;
@@ -53,6 +49,24 @@ function isNoRowsError(error: { code?: string; message?: string } | null | undef
   return error.code === "PGRST116";
 }
 
+function toSiteContentState(row: SiteContentRow | null): SiteContentState {
+  if (!row) {
+    return { content: normalizeContent(null), settings: {} };
+  }
+
+  return {
+    content: normalizeContent({
+      navItems: row.nav_items,
+      quienes: row.quienes,
+      fotos: row.fotos,
+      events: row.events,
+      novedades: row.novedades,
+    } as Partial<MotoclubContent>),
+    settings: row.settings || {},
+    updatedAt: row.updated_at || undefined,
+  };
+}
+
 export async function readSiteContentState(): Promise<
   | { ok: true; state: SiteContentState }
   | { ok: false; status: number; error: string; detail?: string }
@@ -95,34 +109,7 @@ export async function readSiteContentState(): Promise<
     };
   }
 
-  const row = data as SiteContentRow | null;
-
-  if (!row) {
-    return {
-      ok: true,
-      state: {
-        content: normalizeContent(null),
-        settings: {},
-      },
-    };
-  }
-
-  return {
-      ok: true,
-      state: {
-      content: normalizeContent(
-        {
-          navItems: row.nav_items,
-          quienes: row.quienes,
-          fotos: row.fotos,
-          events: row.events,
-          novedades: row.novedades,
-        } as Partial<MotoclubContent>
-      ),
-      settings: row.settings || {},
-      updatedAt: row.updated_at || undefined,
-    },
-  };
+  return { ok: true, state: toSiteContentState(data as SiteContentRow | null) };
 }
 
 export async function writeSiteContentState(state: SiteContentState) {
@@ -136,36 +123,58 @@ export async function writeSiteContentState(state: SiteContentState) {
     };
   }
 
-  let { error } = await admin.from("site_content").upsert(
-    {
-      slug: "main",
-      nav_items: state.content.navItems,
-      quienes: state.content.quienes,
-      fotos: state.content.fotos,
-      events: state.content.events,
-      novedades: state.content.novedades,
-      settings: state.settings,
-    },
-    { onConflict: "slug" }
-  );
+  const baseValues = {
+    nav_items: state.content.navItems,
+    quienes: state.content.quienes,
+    fotos: state.content.fotos,
+    events: state.content.events,
+    novedades: state.content.novedades,
+    updated_at: nextSiteContentUpdatedAt(state.updatedAt, Date.now()),
+  };
+  const save = (includeSettings: boolean) => {
+    const values = includeSettings ? { ...baseValues, settings: state.settings } : baseValues;
+    if (state.updatedAt) {
+      return admin
+        .from("site_content")
+        .update(values)
+        .eq("slug", "main")
+        .eq("updated_at", state.updatedAt)
+        .select(includeSettings ? extendedSelect : baseSelect)
+        .maybeSingle();
+    }
 
+    return admin
+      .from("site_content")
+      .insert({ slug: "main", ...values })
+      .select(includeSettings ? extendedSelect : baseSelect)
+      .maybeSingle();
+  };
+
+  let hasSettings = true;
+  let { data, error } = await save(hasSettings);
   if (isMissingSettingsColumnError(error)) {
-    const fallback = await admin.from("site_content").upsert(
-      {
-        slug: "main",
-        nav_items: state.content.navItems,
-        quienes: state.content.quienes,
-        fotos: state.content.fotos,
-        events: state.content.events,
-        novedades: state.content.novedades,
-      },
-      { onConflict: "slug" }
-    );
-
+    if (Object.keys(state.settings).some((key) => key !== "featuredEventId")) {
+      return {
+        ok: false as const,
+        status: 500,
+        error: "La tabla site_content no tiene la columna settings. No se guardaron los ajustes del sitio.",
+      };
+    }
+    hasSettings = false;
+    const fallback = await save(hasSettings);
+    data = fallback.data;
     error = fallback.error;
   }
 
   if (error) {
+    if (error.code === "23505") {
+      return {
+        ok: false as const,
+        status: 409,
+        error: "El contenido cambió mientras se guardaba. No se sobrescribieron los cambios.",
+      };
+    }
+
     return {
       ok: false as const,
       status: 500,
@@ -174,11 +183,17 @@ export async function writeSiteContentState(state: SiteContentState) {
     };
   }
 
-  const latest = await readSiteContentState();
-
-  if (!latest.ok) {
-    return latest;
+  if (!data) {
+    return {
+      ok: false as const,
+      status: 409,
+      error: "El contenido cambió mientras se guardaba. No se sobrescribieron los cambios.",
+    };
   }
 
-  return { ok: true as const, state: latest.state };
+  const row = data as unknown as SiteContentRow;
+  return {
+    ok: true as const,
+    state: toSiteContentState(hasSettings ? row : { ...row, settings: null }),
+  };
 }

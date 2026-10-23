@@ -1,0 +1,33 @@
+import type { InfoItem } from "@/lib/site-data";
+
+export type SiteSettings = {
+  featuredEventId?: string;
+  clubName?: string;
+  clubTagline?: string;
+  introButtonLabel?: string;
+  aboutTitle?: string;
+  newsTitle?: string;
+  galleryTitle?: string;
+  contactTitle?: string;
+  footerDescription?: string;
+  footerLegal?: string;
+  logoUrl?: string;
+  aboutImageUrl?: string;
+  heroEyebrow?: string;
+  heroTitle?: string;
+  heroSubtitle?: string;
+  heroImage?: string;
+  heroPrimaryLabel?: string;
+  heroPrimaryHref?: string;
+  heroSecondaryLabel?: string;
+  heroSecondaryHref?: string;
+  contactText?: string;
+  contactItems?: InfoItem[];
+  socialItems?: InfoItem[];
+  lodgingTitle?: string;
+  lodgingEyebrow?: string;
+  lodgingDescription?: string;
+  lodgingImageUrl?: string;
+  lodgingLinkLabel?: string;
+  lodgingLinkUrl?: string;
+};

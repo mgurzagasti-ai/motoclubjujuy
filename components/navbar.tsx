@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { defaultContent } from "@/lib/site-data";
 import { useMotoclubContent } from "@/lib/use-motoclub-content";
 
 function getSectionIdFromHref(href: string) {
@@ -16,29 +15,19 @@ function isExternalHref(href: string) {
 }
 
 export function Navbar() {
-  const { content } = useMotoclubContent();
-  const navItems = content.navItems.length ? content.navItems : defaultContent.navItems;
+  const { content, siteSettings, contentReady } = useMotoclubContent();
   const [activeSection, setActiveSection] = useState("inicio");
   const navLinks = useMemo(
-    () => [
-      ...navItems.map((item) => ({
+    () =>
+      (contentReady ? content.navItems : []).filter((item) => item.visible !== false).map((item) => ({
         id: item.id,
         href: item.href,
         label: item.label,
         sectionId: getSectionIdFromHref(item.href),
         isExternal: isExternalHref(item.href),
-        accent: false,
+        accent: item.id === "nav-contacto",
       })),
-      {
-        id: "nav-contacto",
-        href: "/#footer",
-        label: "Contacto",
-        sectionId: "footer",
-        isExternal: false,
-        accent: true,
-      },
-    ],
-    [navItems]
+    [content.navItems, contentReady]
   );
 
   useEffect(() => {
@@ -79,22 +68,27 @@ export function Navbar() {
     };
   }, [navLinks]);
 
+  if (!contentReady) {
+    return <nav className="navbar" />;
+  }
+
   return (
     <nav className="navbar">
       <Link className="brand" href="/#inicio">
         <span className="brand-logo-shell">
           <Image
             className="brand-logo"
-            src="/assets/logo-motoclub-intro.png"
-            alt="Logo de Moto Club Jujuy"
+            src={siteSettings.logoUrl || "/assets/logo-motoclub-intro.png"}
+            alt={`Logo de ${siteSettings.clubName || "Moto Club Jujuy"}`}
             width={58}
             height={58}
             priority
+            unoptimized
           />
         </span>
         <div className="brand-copy">
-          <strong>Moto Club Jujuy</strong>
-          <span>@motoclubjujuy.oficial</span>
+          <strong>{siteSettings.clubName || "Moto Club Jujuy"}</strong>
+          <span>{siteSettings.clubTagline || "@motoclubjujuy.oficial"}</span>
         </div>
       </Link>
 

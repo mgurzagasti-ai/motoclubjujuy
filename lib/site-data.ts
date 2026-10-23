@@ -26,6 +26,8 @@ export type NavItem = {
   id: string;
   href: string;
   label: string;
+  visible?: boolean;
+  adminManaged?: boolean;
 };
 
 export type NewsItem = {
@@ -120,6 +122,7 @@ export const defaultNavItems: NavItem[] = [
   { id: "nav-quienes", href: "/#quienes", label: "Quienes somos" },
   { id: "nav-fotos", href: "/#fotos", label: "Galeria" },
   { id: "nav-admin", href: "/admin", label: "Admin" },
+  { id: "nav-contacto", href: "/#footer", label: "Contacto" },
 ];
 
 function slugifyRouteSegment(value: string) {
@@ -197,13 +200,10 @@ export function normalizeEvent(event: Partial<ClubEvent> | undefined, index = 0)
   ];
   const normalizedDayItems = Array.isArray(event?.dayItems)
     ? event.dayItems.map((item, itemIndex) => ({
-        day: item?.day || fallbackDayItems[itemIndex]?.day || "",
-        detail:
-          item?.detail && item.detail.trim().length > 60
-            ? item.detail
-            : item?.detail || fallbackDayItems[itemIndex]?.detail || "",
-        imageUrl: item?.imageUrl || fallbackDayItems[itemIndex]?.imageUrl || "",
-        imageAlt: item?.imageAlt || fallbackDayItems[itemIndex]?.imageAlt || "",
+        day: item?.day ?? fallbackDayItems[itemIndex]?.day ?? "",
+        detail: item?.detail ?? fallbackDayItems[itemIndex]?.detail ?? "",
+        imageUrl: item?.imageUrl ?? fallbackDayItems[itemIndex]?.imageUrl ?? "",
+        imageAlt: item?.imageAlt ?? fallbackDayItems[itemIndex]?.imageAlt ?? "",
       }))
     : fallbackDayItems;
 
@@ -264,29 +264,6 @@ export function normalizeNavItem(item: Partial<NavItem> | undefined, index = 0):
   };
 }
 
-function ensureSuggestedLodgingNavItem(items: NavItem[]) {
-  const existingIndex = items.findIndex(
-    (item) =>
-      item.id === suggestedLodgingNavItem.id ||
-      item.href === suggestedLodgingExternalHref ||
-      item.href === suggestedLodgingNavItem.href ||
-      item.label.toLowerCase() === suggestedLodgingNavItem.label.toLowerCase()
-  );
-
-  if (existingIndex >= 0) {
-    return items.map((item, index) => (index === existingIndex ? suggestedLodgingNavItem : item));
-  }
-
-  const eventIndex = items.findIndex((item) => item.id === "nav-evento");
-  const insertionIndex = eventIndex >= 0 ? eventIndex + 1 : Math.min(2, items.length);
-
-  return [
-    ...items.slice(0, insertionIndex),
-    suggestedLodgingNavItem,
-    ...items.slice(insertionIndex),
-  ];
-}
-
 export function sortNewsNewestFirst(items: NewsItem[]): NewsItem[] {
   return [...items].sort((a, b) => {
     const timeA = Date.parse(a.createdAt || "");
@@ -309,23 +286,28 @@ export function sortNewsNewestFirst(items: NewsItem[]): NewsItem[] {
 }
 
 export function normalizeContent(parsed: Partial<MotoclubContent> | null | undefined): MotoclubContent {
-  const navItems =
-    Array.isArray(parsed?.navItems) && parsed.navItems.length
-      ? parsed.navItems.map((item, index) => normalizeNavItem(item, index))
-      : defaultContent.navItems;
+  const navItems = Array.isArray(parsed?.navItems)
+    ? parsed.navItems.map((item, index) => normalizeNavItem(item, index))
+    : defaultContent.navItems;
+  const isLegacyMenu =
+    navItems.some((item) => item.id === "nav-inicio") &&
+    navItems.some((item) => item.id === "nav-admin") &&
+    !navItems.some((item) => item.adminManaged);
+  const hasContact = navItems.some((item) => item.id === "nav-contacto" || item.href === "/#footer");
+  const normalizedNavItems = isLegacyMenu && !hasContact
+    ? [...navItems, { id: "nav-contacto", href: "/#footer", label: "Contacto" }]
+    : navItems;
 
   return {
-    navItems: ensureSuggestedLodgingNavItem(navItems),
-    quienes: parsed?.quienes || defaultContent.quienes,
+    navItems: normalizedNavItems,
+    quienes: typeof parsed?.quienes === "string" ? parsed.quienes : defaultContent.quienes,
     fotos: Array.isArray(parsed?.fotos) ? parsed!.fotos : defaultContent.fotos,
-    events:
-      Array.isArray(parsed?.events) && parsed.events.length
-        ? parsed.events.map((event, index) => normalizeEvent(event, index))
-        : defaultContent.events,
-    novedades:
-      Array.isArray(parsed?.novedades) && parsed.novedades.length
-        ? parsed.novedades.map((item, index) => normalizeNewsItem(item, index))
-        : defaultContent.novedades,
+    events: Array.isArray(parsed?.events)
+      ? parsed.events.map((event, index) => normalizeEvent(event, index))
+      : defaultContent.events,
+    novedades: Array.isArray(parsed?.novedades)
+      ? parsed.novedades.map((item, index) => normalizeNewsItem(item, index))
+      : defaultContent.novedades,
   };
 }
 

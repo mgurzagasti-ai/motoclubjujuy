@@ -98,9 +98,9 @@ function buildId(prefix: string) {
 
 function getFeaturedEvent(content: MotoclubContent, settings: SiteSettings) {
   return (
-    content.events.find((event) => event.id === settings.featuredEventId) ||
-    content.events[0] ||
-    createDefaultEvent()
+    content.events.find((event) => event.id === settings.featuredEventId && event.published !== false) ||
+    content.events.find((event) => event.published !== false) ||
+    null
   );
 }
 
@@ -270,12 +270,12 @@ export function toApiSiteContent(state: SiteContentState): ApiSiteContent {
   const featured = getFeaturedEvent(state.content, state.settings);
 
   return {
-    heroTitle: state.settings.heroTitle || featured.name || "Moto Club Jujuy",
-    heroSubtitle: state.settings.heroSubtitle || featured.heroEyebrow || "",
-    heroImage: state.settings.heroImage || eventCoverImage(featured) || state.content.fotos[0]?.url || "",
+    heroTitle: state.settings.heroTitle || featured?.name || "Moto Club Jujuy",
+    heroSubtitle: state.settings.heroSubtitle || featured?.heroEyebrow || "",
+    heroImage: state.settings.heroImage || (featured ? eventCoverImage(featured) : "") || state.content.fotos[0]?.url || "",
     aboutText: state.content.quienes || "",
     contactText: state.settings.contactText || "",
-    featuredEventId: state.settings.featuredEventId || featured.id || "",
+    featuredEventId: featured?.id || "",
     updatedAt: state.updatedAt || nowIso(),
   };
 }
@@ -283,8 +283,6 @@ export function toApiSiteContent(state: SiteContentState): ApiSiteContent {
 export function mergeApiSiteContent(state: SiteContentState, input: Partial<ApiSiteContent>): SiteContentState {
   const content = { ...state.content };
   const settings = { ...state.settings };
-  const targetEventId =
-    input.featuredEventId?.trim() || settings.featuredEventId || content.events[0]?.id || createDefaultEvent().id;
 
   if (input.aboutText !== undefined) {
     content.quienes = input.aboutText;
@@ -306,11 +304,14 @@ export function mergeApiSiteContent(state: SiteContentState, input: Partial<ApiS
     settings.contactText = input.contactText.trim();
   }
 
-  settings.featuredEventId = targetEventId;
-
-  if (!content.events.some((event) => event.id === targetEventId)) {
-    content.events = [...content.events, mergeApiEvent(null, { id: targetEventId, title: settings.heroTitle })];
-  }
+  const requestedEvent = content.events.find(
+    (event) => event.id === input.featuredEventId?.trim() && event.published !== false
+  );
+  const currentEvent = content.events.find(
+    (event) => event.id === settings.featuredEventId && event.published !== false
+  );
+  settings.featuredEventId =
+    requestedEvent?.id || currentEvent?.id || content.events.find((event) => event.published !== false)?.id || "";
 
   return {
     content,

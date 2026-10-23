@@ -2,10 +2,12 @@
 
 import Image from "next/image";
 import { MouseEvent, useEffect, useState } from "react";
+import { useMotoclubContent } from "@/lib/use-motoclub-content";
 
 const INTRO_SEEN_KEY = "motoclub-intro-seen";
 
 export function IntroPresentation() {
+  const { siteSettings } = useMotoclubContent();
   const [isDismissed, setIsDismissed] = useState(
     () =>
       typeof window !== "undefined" &&
@@ -36,7 +38,7 @@ export function IntroPresentation() {
   }
 
   return (
-    <section className="intro-presentation" aria-label="Presentacion de Moto Club Jujuy">
+    <section className="intro-presentation" aria-label={`Presentacion de ${siteSettings.clubName || "Moto Club Jujuy"}`}>
       <div className="intro-video-layer" aria-hidden="true">
         <div className="intro-road intro-road--one" />
         <div className="intro-road intro-road--two" />
@@ -56,16 +58,17 @@ export function IntroPresentation() {
           <span className="intro-logo-orbit" aria-hidden="true" />
           <Image
             className="intro-logo"
-            src="/assets/logo-motoclub-intro.png"
-            alt="Moto Club Jujuy Argentina"
+            src={siteSettings.logoUrl || "/assets/logo-motoclub-intro.png"}
+            alt={siteSettings.clubName || "Moto Club Jujuy Argentina"}
             width={512}
             height={512}
             priority
+            unoptimized
           />
         </div>
 
         <a className="intro-enter-btn" href="#sitio" onClick={handleEnter}>
-          Ingresar a la pagina
+          {siteSettings.introButtonLabel || "Ingresar a la pagina"}
         </a>
       </div>
     </section>

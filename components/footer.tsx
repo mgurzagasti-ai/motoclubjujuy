@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
-import { defaultContent } from "@/lib/site-data";
 import { hasSupabaseConfig, supabase } from "@/lib/supabase";
 import { useMotoclubContent } from "@/lib/use-motoclub-content";
 
@@ -17,7 +16,7 @@ function buildSocialHref(label: string, value: string) {
     return null;
   }
 
-  if (/^https?:\/\//i.test(trimmedValue)) {
+  if (/^(https?:\/\/|mailto:|tel:)/i.test(trimmedValue)) {
     return trimmedValue;
   }
 
@@ -35,6 +34,15 @@ function buildSocialHref(label: string, value: string) {
   if (normalizedLabel.includes("whatsapp")) {
     const phone = normalizedValue.replace(/\D/g, "");
     return phone ? `https://wa.me/${phone}` : null;
+  }
+
+  if (normalizedLabel.includes("correo") || normalizedLabel.includes("email")) {
+    return trimmedValue.includes("@") ? `mailto:${trimmedValue}` : null;
+  }
+
+  if (normalizedLabel.includes("teléfono") || normalizedLabel.includes("telefono") || normalizedLabel.includes("celular")) {
+    const phone = trimmedValue.replace(/[^\d+]/g, "");
+    return phone ? `tel:${phone}` : null;
   }
 
   if (normalizedLabel.includes("youtube")) {
@@ -104,10 +112,12 @@ function getSocialIconAsset(label: string) {
 }
 
 export function Footer() {
-  const { content } = useMotoclubContent();
+  const { content, featuredEventId, siteSettings, contentReady } = useMotoclubContent();
   const [visitCount, setVisitCount] = useState(0);
   const [counterSource, setCounterSource] = useState<"supabase" | "local">("local");
-  const featuredEvent = content.events[0] ?? defaultContent.events[0];
+  const publishedEvents = content.events.filter((event) => event.published !== false);
+  const featuredEvent =
+    publishedEvents.find((event) => event.id === featuredEventId) ?? publishedEvents[0] ?? null;
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -176,7 +186,7 @@ export function Footer() {
   }, []);
 
   const socialLinks = useMemo(() => {
-    const links = featuredEvent.socialItems
+    const links = (siteSettings.socialItems ?? featuredEvent?.socialItems ?? [])
       .map((item) => ({
         ...item,
         href: buildSocialHref(item.label, item.value),
@@ -185,7 +195,7 @@ export function Footer() {
       .filter((item) => Boolean(item.href));
 
     const hasWhatsapp = links.some((item) => item.label.toLowerCase().includes("whatsapp"));
-    const registrationHref = featuredEvent.registrationHref?.trim() || "";
+    const registrationHref = featuredEvent?.registrationHref?.trim() || "";
     const isWhatsappRegistration =
       /^https?:\/\/(wa\.me|api\.whatsapp\.com)\//i.test(registrationHref);
 
@@ -199,19 +209,20 @@ export function Footer() {
     }
 
     return links;
-  }, [featuredEvent.registrationHref, featuredEvent.socialItems]);
+  }, [featuredEvent?.registrationHref, featuredEvent?.socialItems, siteSettings.socialItems]);
+
+  if (!contentReady) {
+    return null;
+  }
 
   return (
     <footer className="site-footer" id="footer">
       <div className="footer-card">
         <div className="footer-top">
           <div className="footer-brand-block">
-            <span className="footer-eyebrow">Moto Club Jujuy</span>
-            <strong>Comunidad, ruta y encuentros con identidad jujeña</strong>
-            <p>
-              Pasion por las dos ruedas, nuevas rutas y una comunidad abierta para vivir el
-              motoencuentro durante todo el ano.
-            </p>
+            <span className="footer-eyebrow">{siteSettings.clubName || "Moto Club Jujuy"}</span>
+            <strong>{siteSettings.clubTagline || "Comunidad, ruta y encuentros con identidad jujeña"}</strong>
+            <p>{siteSettings.footerDescription || "Pasion por las dos ruedas, nuevas rutas y una comunidad abierta a todos los motociclistas."}</p>
           </div>
 
           <div className="footer-counter">
@@ -226,10 +237,11 @@ export function Footer() {
         <div className="footer-bottom">
           <div className="footer-copy">
             <strong>Seguinos y escribinos</strong>
-            <p>Encontranos en redes y mantente al tanto del 6 Motoencuentro Internacional.</p>
+            <p>Encontranos en redes y mantenete al tanto de las novedades del club.</p>
           </div>
 
           <div className="footer-socials">
+            {socialLinks.length === 0 ? <span>Pronto publicaremos nuestros enlaces de contacto.</span> : null}
             {socialLinks.map((item, index) => {
               const iconAsset = getSocialIconAsset(item.label);
 
@@ -260,7 +272,7 @@ export function Footer() {
         </div>
 
         <div className="footer-legal">
-          <span>Pasion por las dos ruedas (c) 2026</span>
+          <span>{siteSettings.footerLegal || "Pasion por las dos ruedas (c) 2026"}</span>
           <span>Martin Urzagasti</span>
         </div>
       </div>

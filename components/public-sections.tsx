@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import Image from "next/image";
 import { PhotoCarousel } from "@/components/photo-carousel";
-import { ClubEvent, defaultContent, sortNewsNewestFirst } from "@/lib/site-data";
+import { ClubEvent, sortNewsNewestFirst } from "@/lib/site-data";
 import { hasSupabaseConfig, supabase } from "@/lib/supabase";
 import { useMotoclubContent } from "@/lib/use-motoclub-content";
 
@@ -14,7 +14,7 @@ function buildSocialHref(label: string, value: string) {
     return null;
   }
 
-  if (/^https?:\/\//i.test(trimmedValue)) {
+  if (/^(https?:\/\/|mailto:|tel:)/i.test(trimmedValue)) {
     return trimmedValue;
   }
 
@@ -32,6 +32,15 @@ function buildSocialHref(label: string, value: string) {
   if (normalizedLabel.includes("whatsapp")) {
     const phone = normalizedValue.replace(/\D/g, "");
     return phone ? `https://wa.me/${phone}` : null;
+  }
+
+  if (normalizedLabel.includes("correo") || normalizedLabel.includes("email")) {
+    return trimmedValue.includes("@") ? `mailto:${trimmedValue}` : null;
+  }
+
+  if (normalizedLabel.includes("teléfono") || normalizedLabel.includes("telefono") || normalizedLabel.includes("celular")) {
+    const phone = trimmedValue.replace(/[^\d+]/g, "");
+    return phone ? `tel:${phone}` : null;
   }
 
   if (normalizedLabel.includes("youtube")) {
@@ -245,100 +254,132 @@ function EventRegistrationForm({ event, compact = false }: EventRegistrationForm
 }
 
 export function PublicSections() {
-  const { content } = useMotoclubContent();
+  const { content, featuredEventId, siteSettings, contentReady } = useMotoclubContent();
   const [zoomedDayIndex, setZoomedDayIndex] = useState<number | null>(null);
   const [zoomedNewsIndex, setZoomedNewsIndex] = useState<number | null>(null);
-  const featuredEvent = content.events[0] ?? defaultContent.events[0];
-  const extraEvents = content.events.slice(1);
-  const novedades = sortNewsNewestFirst(
-    content.novedades.length ? content.novedades : defaultContent.novedades
-  );
-  const registrationHref = buildRegistrationHref(featuredEvent.registrationHref);
-  const zoomedDay = zoomedDayIndex === null ? null : featuredEvent.dayItems[zoomedDayIndex];
+  const publishedEvents = content.events.filter((event) => event.published !== false);
+  const featuredEvent =
+    publishedEvents.find((event) => event.id === featuredEventId) ?? publishedEvents[0] ?? null;
+  const extraEvents = publishedEvents.filter((event) => event.id !== featuredEvent?.id);
+  const novedades = sortNewsNewestFirst(content.novedades.filter((item) => item.published !== false));
+  const registrationHref = buildRegistrationHref(featuredEvent?.registrationHref);
+  const zoomedDay =
+    zoomedDayIndex === null ? null : featuredEvent?.dayItems[zoomedDayIndex] ?? null;
   const zoomedNews = zoomedNewsIndex === null ? null : novedades[zoomedNewsIndex];
+
+  if (!contentReady) {
+    return (
+      <section id="inicio" className="page active-page">
+        <div className="hero">
+          <div className="hero-copy">
+            <h1>Moto Club Jujuy</h1>
+            <p>Cargando contenido...</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <>
       <section id="inicio" className="page active-page">
-        <div className="hero">
-          <div className="hero-copy">
-            <div className="eyebrow">{featuredEvent.heroEyebrow}</div>
-            <h1>
-              {featuredEvent.heroHeadlinePrefix} <span>{featuredEvent.heroHeadlineHighlight}</span>
-            </h1>
-            <p>{featuredEvent.heroDescription}</p>
-            <div className="hero-actions">
-              <a className="btn btn-primary" href="#evento">
-                Ver evento
-              </a>
-              {registrationHref ? (
-                <a
-                  className="btn btn-secondary"
-                  href={registrationHref}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {featuredEvent.registrationLabel}
-                </a>
+        {featuredEvent ? (
+          <>
+            <div className="hero">
+              <div className="hero-copy">
+                <div className="eyebrow">{siteSettings.heroEyebrow || featuredEvent.heroEyebrow}</div>
+                <h1>
+                  {siteSettings.heroTitle || <>{featuredEvent.heroHeadlinePrefix}{" "}<span>{featuredEvent.heroHeadlineHighlight}</span></>}
+                </h1>
+                <p>{siteSettings.heroSubtitle || featuredEvent.heroDescription}</p>
+                <div className="hero-actions">
+                  <a className="btn btn-primary" href={siteSettings.heroPrimaryHref || "#evento"}>
+                    {siteSettings.heroPrimaryLabel || "Ver evento"}
+                  </a>
+                  {(siteSettings.heroSecondaryHref || registrationHref) ? (
+                    <a
+                      className="btn btn-secondary"
+                      href={siteSettings.heroSecondaryHref || registrationHref || "#evento"}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {siteSettings.heroSecondaryLabel || featuredEvent.registrationLabel}
+                    </a>
+                  ) : null}
+                </div>
+              </div>
+
+              {(siteSettings.heroImage || featuredEvent.posterUrl) ? (
+                <div className="hero-visual">
+                  <Image
+                    src={siteSettings.heroImage || featuredEvent.posterUrl}
+                    alt={siteSettings.heroImage ? (siteSettings.heroTitle || "Imagen de portada") : featuredEvent.posterAlt}
+                    width={900}
+                    height={900}
+                    className="poster-image"
+                    unoptimized
+                    priority
+                  />
+                  <div className="hero-badge">
+                    <strong>{featuredEvent.badgeDate}</strong>
+                    <span>{featuredEvent.badgeLocation}</span>
+                  </div>
+                </div>
               ) : null}
             </div>
-          </div>
 
-          <div className="hero-visual">
-            <Image
-              src={featuredEvent.posterUrl}
-              alt={featuredEvent.posterAlt}
-              width={900}
-              height={900}
-              className="poster-image"
-              priority
-            />
-            <div className="hero-badge">
-              <strong>{featuredEvent.badgeDate}</strong>
-              <span>{featuredEvent.badgeLocation}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="section-block event-grid">
-          <article className="panel">
-            <div className="event-headline">
-              <div>
-                <div className="eyebrow">{featuredEvent.summaryEyebrow}</div>
-                <h2 className="section-title">
-                  {featuredEvent.summaryTitlePrefix}{" "}
-                  <span>{featuredEvent.summaryTitleHighlight}</span>
-                </h2>
-              </div>
-              <div className="event-date">
-                <strong>{featuredEvent.dateNumbers}</strong>
-                <span>{featuredEvent.dateMonth}</span>
-              </div>
-            </div>
-
-            <div className="event-meta">
-              {featuredEvent.metaItems.map((item, index) => (
-                <div className="meta-item" key={`${item.label}-${index}`}>
-                  <strong>{item.label}</strong>
-                  <span>{item.value}</span>
+            <div className="section-block event-grid">
+              <article className="panel">
+                <div className="event-headline">
+                  <div>
+                    <div className="eyebrow">{featuredEvent.summaryEyebrow}</div>
+                    <h2 className="section-title">
+                      {featuredEvent.summaryTitlePrefix}{" "}
+                      <span>{featuredEvent.summaryTitleHighlight}</span>
+                    </h2>
+                  </div>
+                  <div className="event-date">
+                    <strong>{featuredEvent.dateNumbers}</strong>
+                    <span>{featuredEvent.dateMonth}</span>
+                  </div>
                 </div>
-              ))}
-            </div>
-          </article>
 
-          <aside className="panel">
-            <div className="highlights">
-              {featuredEvent.highlightItems.map((item, index) => (
-                <div className="highlight-item" key={`${item.label}-${index}`}>
-                  <strong>{item.label}</strong>
-                  <span>{item.value}</span>
+                <div className="event-meta">
+                  {featuredEvent.metaItems.map((item, index) => (
+                    <div className="meta-item" key={`${item.label}-${index}`}>
+                      <strong>{item.label}</strong>
+                      <span>{item.value}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </article>
+
+              <aside className="panel">
+                <div className="highlights">
+                  {featuredEvent.highlightItems.map((item, index) => (
+                    <div className="highlight-item" key={`${item.label}-${index}`}>
+                      <strong>{item.label}</strong>
+                      <span>{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </aside>
             </div>
-          </aside>
-        </div>
+          </>
+        ) : (
+          <div className="hero">
+            <div className="hero-copy">
+              {siteSettings.heroEyebrow ? <div className="eyebrow">{siteSettings.heroEyebrow}</div> : null}
+              <h1>{siteSettings.heroTitle || siteSettings.clubName || "Moto Club Jujuy"}</h1>
+              <p>{siteSettings.heroSubtitle || "No hay eventos publicados por el momento."}</p>
+              {siteSettings.heroPrimaryHref ? <a className="btn btn-primary" href={siteSettings.heroPrimaryHref}>{siteSettings.heroPrimaryLabel || "Conocer más"}</a> : null}
+            </div>
+            {siteSettings.heroImage ? <div className="hero-visual"><Image src={siteSettings.heroImage} alt={siteSettings.heroTitle || "Imagen de portada"} width={900} height={900} className="poster-image" unoptimized /></div> : null}
+          </div>
+        )}
       </section>
 
+      {featuredEvent ? (
       <section id="evento" className="page active-page">
         <h2 className="section-title">
           <span>{featuredEvent.sectionTitlePrefix}</span> {featuredEvent.sectionTitleHighlight}
@@ -394,9 +435,11 @@ export function PublicSections() {
             <div className="event-card-grid">
               {extraEvents.map((event) => (
                 <article className="event-mini-card" key={event.id}>
-                  <div className="event-mini-card-image">
-                    <Image src={event.posterUrl} alt={event.posterAlt} width={500} height={500} />
-                  </div>
+                  {event.posterUrl ? (
+                    <div className="event-mini-card-image">
+                      <Image src={event.posterUrl} alt={event.posterAlt} width={500} height={500} />
+                    </div>
+                  ) : null}
                   <div className="event-mini-card-copy">
                     <strong>{event.name}</strong>
                     <span>{event.badgeDate}</span>
@@ -411,11 +454,10 @@ export function PublicSections() {
           </div>
         ) : null}
       </section>
+      ) : null}
 
       <section id="novedades" className="page active-page">
-        <h2 className="section-title">
-          Ultimas <span>novedades</span>
-        </h2>
+        <h2 className="section-title">{siteSettings.newsTitle || <>Ultimas <span>novedades</span></>}</h2>
         <div className="news-grid">
           {novedades.map((item, index) => (
             <article className="news-card" key={item.id}>
@@ -449,20 +491,20 @@ export function PublicSections() {
               </div>
             </article>
           ))}
+          {novedades.length === 0 ? <p>No hay novedades publicadas por el momento.</p> : null}
         </div>
       </section>
 
       <section id="quienes" className="page active-page">
-        <h2 className="section-title">
-          La esencia del <span>club</span>
-        </h2>
+        <h2 className="section-title">{siteSettings.aboutTitle || <>La esencia del <span>club</span></>}</h2>
         <div className="about-grid">
           <div className="logo-showcase panel">
             <Image
-              src="/assets/logo-motoclub.jpeg"
+              src={siteSettings.aboutImageUrl || "/assets/logo-motoclub.jpeg"}
               alt="Logo oficial de Moto Club Jujuy"
               width={500}
               height={500}
+              unoptimized
             />
           </div>
           <article className="panel rich-text">
@@ -472,20 +514,17 @@ export function PublicSections() {
       </section>
 
       <section id="fotos" className="page active-page">
-        <h2 className="section-title">
-          Postales de <span>ruta</span>
-        </h2>
-        <PhotoCarousel fotos={content.fotos} />
+        <h2 className="section-title">{siteSettings.galleryTitle || <>Postales de <span>ruta</span></>}</h2>
+        <PhotoCarousel fotos={content.fotos.filter((foto) => foto.published !== false)} />
       </section>
 
       <section className="section-block" id="contacto">
-        <h2 className="section-title">
-          Contacto y <span>redes</span>
-        </h2>
-        <div className="contact-grid">
+        <h2 className="section-title">{siteSettings.contactTitle || <>Contacto y <span>redes</span></>}</h2>
+        {siteSettings.contactText ? <p>{siteSettings.contactText}</p> : null}
+        {(featuredEvent || siteSettings.contactItems || siteSettings.socialItems) ? <div className="contact-grid">
           <article className="panel">
             <div className="social-list">
-              {featuredEvent.socialItems.map((item, index) => {
+              {(siteSettings.socialItems ?? featuredEvent?.socialItems ?? []).map((item, index) => {
                 const socialHref = buildSocialHref(item.label, item.value);
 
                 return (
@@ -506,15 +545,17 @@ export function PublicSections() {
 
           <article className="panel">
             <div className="contact-list">
-              {featuredEvent.contactItems.map((item, index) => (
+              {(siteSettings.contactItems ?? featuredEvent?.contactItems ?? []).map((item, index) => (
                 <div className="contact-item" key={`${item.label}-${index}`}>
                   <strong>{item.label}</strong>
-                  <span>{item.value}</span>
+                  {buildSocialHref(item.label, item.value) ? (
+                    <a href={buildSocialHref(item.label, item.value) || undefined}>{item.value}</a>
+                  ) : <span>{item.value}</span>}
                 </div>
               ))}
             </div>
           </article>
-        </div>
+        </div> : <p>No hay datos de contacto publicados por el momento.</p>}
       </section>
 
       {zoomedDay ? (

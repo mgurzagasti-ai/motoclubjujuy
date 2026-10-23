@@ -17,6 +17,37 @@ import {
   sortNewsNewestFirst,
 } from "@/lib/site-data";
 import { useMotoclubContent } from "@/lib/use-motoclub-content";
+import type { SiteSettings } from "@/lib/site-settings";
+
+type TextSetting = Exclude<keyof SiteSettings, "contactItems" | "socialItems">;
+const settingFields: { key: TextSetting; label: string }[] = [
+  { key: "clubName", label: "Nombre del club" },
+  { key: "clubTagline", label: "Lema del club" },
+  { key: "introButtonLabel", label: "Texto del botón de ingreso" },
+  { key: "aboutTitle", label: "Título institucional" },
+  { key: "newsTitle", label: "Título de novedades" },
+  { key: "galleryTitle", label: "Título de galería" },
+  { key: "contactTitle", label: "Título de contacto" },
+  { key: "footerDescription", label: "Descripción del pie de página" },
+  { key: "footerLegal", label: "Texto legal del pie de página" },
+  { key: "logoUrl", label: "URL del logo de cabecera" },
+  { key: "aboutImageUrl", label: "URL de imagen institucional" },
+  { key: "heroEyebrow", label: "Antetítulo de portada" },
+  { key: "heroTitle", label: "Título de portada" },
+  { key: "heroSubtitle", label: "Texto de portada" },
+  { key: "heroImage", label: "URL de imagen de portada" },
+  { key: "heroPrimaryLabel", label: "Texto del botón principal" },
+  { key: "heroPrimaryHref", label: "Enlace del botón principal" },
+  { key: "heroSecondaryLabel", label: "Texto del botón secundario" },
+  { key: "heroSecondaryHref", label: "Enlace del botón secundario" },
+  { key: "contactText", label: "Texto de contacto" },
+  { key: "lodgingTitle", label: "Título de alojamientos" },
+  { key: "lodgingEyebrow", label: "Antetítulo de alojamientos" },
+  { key: "lodgingDescription", label: "Descripción de alojamientos" },
+  { key: "lodgingImageUrl", label: "URL de imagen de alojamientos" },
+  { key: "lodgingLinkLabel", label: "Texto del enlace de alojamientos" },
+  { key: "lodgingLinkUrl", label: "Enlace de alojamientos" },
+];
 
 function fileToDataUrl(file: File) {
   return new Promise<string>((resolve, reject) => {
@@ -84,8 +115,32 @@ function createBlankDay(): EventDay {
 }
 
 export function AdminPanel() {
-  const { content, saveContent, cloudinaryEnabled, refreshSupabaseContent, contentSource } =
+  const { content, featuredEventId, setFeaturedEventId, saveContent, getContentVersion, cloudinaryEnabled, refreshSupabaseContent, contentSource } =
     useMotoclubContent();
+  const [settingsDraft, setSettingsDraft] = useState<SiteSettings>({});
+  const setSetting = (key: keyof SiteSettings, value: string) =>
+    setSettingsDraft((current) => ({ ...current, [key]: value }));
+  const handleSettingImageFile = async (key: "logoUrl" | "aboutImageUrl" | "heroImage" | "lodgingImageUrl", file?: File) => {
+    if (!file) return;
+    try {
+      if (cloudinaryEnabled) {
+        const body = new FormData();
+        body.set("title", key);
+        body.set("file", file);
+        const response = await fetch("/api/photos", { method: "POST", headers: photoAuthHeaders(), body });
+        const payload = (await response.json()) as { error?: string; photo?: MotoPhoto };
+        if (!response.ok || !payload.photo?.url) throw new Error(payload.error || "No se pudo subir la imagen.");
+        setSetting(key, payload.photo.url);
+      } else {
+        const dataUrl = await imageFileToSizedDataUrl(file, 1200, 0.75);
+        if (dataUrl.length > 1_500_000) throw new Error("La imagen es demasiado pesada.");
+        setSetting(key, dataUrl);
+      }
+      setLoginError("");
+    } catch (error) {
+      setLoginError(error instanceof Error ? error.message : "No se pudo preparar la imagen.");
+    }
+  };
   const [isAdmin, setIsAdmin] = useState(false);
   const [user, setUser] = useState("");
   const [pass, setPass] = useState("");
@@ -95,6 +150,7 @@ export function AdminPanel() {
   const [eventsDraft, setEventsDraft] = useState<ClubEvent[]>(content.events);
   const [newsDraft, setNewsDraft] = useState<NewsItem[]>(content.novedades);
   const [selectedEventId, setSelectedEventId] = useState(content.events[0]?.id ?? "");
+  const [featuredEventDraftId, setFeaturedEventDraftId] = useState(featuredEventId);
   const [selectedNewsId, setSelectedNewsId] = useState(content.novedades[0]?.id ?? "");
   const [fotoUrl, setFotoUrl] = useState("");
   const [fotoTitulo, setFotoTitulo] = useState("");
@@ -106,8 +162,10 @@ export function AdminPanel() {
   const [novedadGuardada, setNovedadGuardada] = useState("");
   const [newsError, setNewsError] = useState("");
   const [saveModalMessage, setSaveModalMessage] = useState("");
+  const [saveConflict, setSaveConflict] = useState("");
   const [isUploadingNewsImage, setIsUploadingNewsImage] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [editingPhotoIndex, setEditingPhotoIndex] = useState<number | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const newsFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -166,8 +224,8 @@ export function AdminPanel() {
         ...item,
         id: item.id || `news-restored-${index}`,
         createdAt: item.createdAt || new Date().toISOString(),
-        title: buildNewsTitle(item.description),
-        tag: "Novedad",
+        title: item.title.trim() || buildNewsTitle(item.description),
+        tag: item.tag.trim() || "Novedad",
         date: item.date.trim() || formatNewsDate(item.createdAt || new Date().toISOString()),
         description: item.description.trim(),
         imageUrl: item.imageUrl.trim(),
@@ -182,6 +240,7 @@ export function AdminPanel() {
     }
 
     setSelectedFile(null);
+    setEditingPhotoIndex(null);
     setFotoUrl("");
     setFotoTitulo("");
     setFotoDescripcion("");
@@ -210,6 +269,15 @@ export function AdminPanel() {
   };
 
   const persistContent = async (nextSnapshot: typeof content) => {
+    const expectedUpdatedAt = getContentVersion();
+    if (expectedUpdatedAt === undefined) {
+      throw new Error("No se cargó la versión del contenido. Recargá ADMIN antes de guardar.");
+    }
+
+    const submittedSnapshot = {
+      ...nextSnapshot,
+      navItems: nextSnapshot.navItems.map((item) => ({ ...item, adminManaged: true })),
+    };
     const response = await fetch("/api/site-content", {
       method: "PUT",
       headers: {
@@ -218,7 +286,10 @@ export function AdminPanel() {
       body: JSON.stringify({
         username: user,
         password: pass,
-        content: nextSnapshot,
+        content: submittedSnapshot,
+        featuredEventId: featuredEventDraftId,
+        settings: settingsDraft,
+        expectedUpdatedAt,
       }),
     });
 
@@ -226,7 +297,16 @@ export function AdminPanel() {
       error?: string;
       detail?: string;
       content?: typeof content;
+      featuredEventId?: string;
+      settings?: SiteSettings;
+      updatedAt?: string | null;
     };
+
+    if (response.status === 409 || response.status === 428) {
+      const message = payload.error || "El contenido cambió en otra pestaña. Tus ediciones siguen en el formulario.";
+      setSaveConflict(message);
+      throw new Error(message);
+    }
 
     if (!response.ok) {
       throw new Error(
@@ -234,7 +314,20 @@ export function AdminPanel() {
       );
     }
 
-    saveContent(payload.content || nextSnapshot);
+    if (!payload.updatedAt) {
+      throw new Error("El servidor guardó el contenido pero no devolvió su versión. Recargá ADMIN antes de seguir.");
+    }
+
+    saveContent(payload.content || submittedSnapshot, payload.updatedAt, payload.settings);
+    if (payload.settings) setSettingsDraft(payload.settings);
+    setFeaturedEventId(payload.featuredEventId ?? "");
+    setSaveConflict("");
+  };
+
+  const photoAuthHeaders = () => {
+    const bytes = new TextEncoder().encode(`${user}:${pass}`);
+    const encoded = btoa(Array.from(bytes, (byte) => String.fromCharCode(byte)).join(""));
+    return { Authorization: `Basic ${encoded}` };
   };
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
@@ -258,14 +351,22 @@ export function AdminPanel() {
         throw new Error(payload.error || "No se pudo iniciar sesion.");
       }
 
+      const loaded = await refreshSupabaseContent();
+      if (!loaded) {
+        throw new Error("No se pudo cargar el contenido actualizado de Supabase. Intentá ingresar nuevamente.");
+      }
+
       setIsAdmin(true);
-      setNavDraft(content.navItems);
-      setQuienes(content.quienes);
-      setEventsDraft(content.events);
-      setNewsDraft(content.novedades);
-      setSelectedEventId(content.events[0]?.id ?? "");
-      setSelectedNewsId(content.novedades[0]?.id ?? "");
+      setNavDraft(loaded.content.navItems);
+      setQuienes(loaded.content.quienes);
+      setEventsDraft(loaded.content.events);
+      setFeaturedEventDraftId(loaded.featuredEventId);
+      setSettingsDraft(loaded.settings);
+      setNewsDraft(loaded.content.novedades);
+      setSelectedEventId(loaded.content.events[0]?.id ?? "");
+      setSelectedNewsId(loaded.content.novedades[0]?.id ?? "");
       setLoginError("");
+      setSaveConflict("");
     } catch (loginFailure) {
       setLoginError(
         loginFailure instanceof Error ? loginFailure.message : "No se pudo iniciar sesion."
@@ -340,12 +441,13 @@ export function AdminPanel() {
 
       if (cloudinaryEnabled) {
         const body = new FormData();
-        body.set("title", selectedNews.title.trim() || file.name.replace(/\.[^.]+$/, ""));
-        body.set("description", selectedNews.description.trim());
+        body.set("title", (selectedNews.title.trim() || file.name.replace(/\.[^.]+$/, "")).slice(0, 120));
+        body.set("description", selectedNews.description.trim().slice(0, 500));
         body.set("file", file);
 
         const response = await fetch("/api/photos", {
           method: "POST",
+          headers: photoAuthHeaders(),
           body,
         });
 
@@ -397,10 +499,22 @@ export function AdminPanel() {
   const buildPhotosWithoutIndex = (index: number) =>
     content.fotos.filter((_, fotoIndex) => fotoIndex !== index);
 
-  const updateNavItem = (index: number, key: keyof NavItem, value: string) => {
+  const updateNavItem = <K extends keyof NavItem>(index: number, key: K, value: NavItem[K]) => {
     setNavDraft((current) =>
       current.map((item, itemIndex) => (itemIndex === index ? { ...item, [key]: value } : item))
     );
+  };
+
+  const moveNavItem = (index: number, direction: -1 | 1) => {
+    setNavDraft((current) => {
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= current.length) {
+        return current;
+      }
+      const reordered = [...current];
+      [reordered[index], reordered[targetIndex]] = [reordered[targetIndex], reordered[index]];
+      return reordered;
+    });
   };
 
   const handleAddNavItem = () => {
@@ -446,9 +560,25 @@ export function AdminPanel() {
       return;
     }
 
+    if (editingPhotoIndex !== null && !selectedFile) {
+      try {
+        await persistContent({
+          ...content, navItems: navDraft, quienes, events: eventsDraft, novedades: newsDraft,
+          fotos: content.fotos.map((foto, index) => index === editingPhotoIndex
+            ? { ...foto, url: trimmedUrl, titulo: fotoTitulo.trim() || "Nueva imagen", descripcion: fotoDescripcion.trim() }
+            : foto),
+        });
+        resetPhotoForm();
+        flashMessage(setFotoGuardada, "Fotografía actualizada.");
+      } catch (error) {
+        setFotoError(error instanceof Error ? error.message : "No se pudo actualizar la fotografía.");
+      }
+      return;
+    }
+
     if (cloudinaryEnabled) {
-      if (!selectedFile && !/^https?:\/\//i.test(trimmedUrl)) {
-        setFotoError("Con Cloudinary debes subir un archivo o usar una URL publica completa.");
+      if (!selectedFile) {
+        setFotoError("Por seguridad, descargá la imagen y subí el archivo desde tu equipo.");
         return;
       }
 
@@ -460,14 +590,11 @@ export function AdminPanel() {
         body.set("title", fotoTitulo.trim() || "Nueva imagen");
         body.set("description", fotoDescripcion.trim());
 
-        if (selectedFile) {
-          body.set("file", selectedFile);
-        } else {
-          body.set("sourceUrl", trimmedUrl);
-        }
+        body.set("file", selectedFile);
 
         const response = await fetch("/api/photos", {
           method: "POST",
+          headers: photoAuthHeaders(),
           body,
         });
 
@@ -483,7 +610,9 @@ export function AdminPanel() {
           quienes,
           events: eventsDraft,
           novedades: newsDraft,
-          fotos: [...content.fotos, payload.photo],
+          fotos: editingPhotoIndex === null
+            ? [...content.fotos, payload.photo]
+            : content.fotos.map((foto, index) => index === editingPhotoIndex ? { ...payload.photo!, published: foto.published } : foto),
         });
         resetPhotoForm();
         flashMessage(setFotoGuardada, "Imagen subida a Cloudinary y guardada en Supabase.");
@@ -505,14 +634,15 @@ export function AdminPanel() {
         quienes,
         events: eventsDraft,
         novedades: newsDraft,
-        fotos: [
-          ...content.fotos,
-          {
+        fotos: editingPhotoIndex === null ? [
+          ...content.fotos, {
             url: finalUrl,
             titulo: fotoTitulo.trim() || "Nueva imagen",
             descripcion: fotoDescripcion.trim(),
           },
-        ],
+        ] : content.fotos.map((foto, index) => index === editingPhotoIndex ? {
+          ...foto, url: finalUrl, titulo: fotoTitulo.trim() || "Nueva imagen", descripcion: fotoDescripcion.trim(),
+        } : foto),
       });
 
       resetPhotoForm();
@@ -523,6 +653,12 @@ export function AdminPanel() {
   };
 
   const handleEliminarFotoActual = async (foto: MotoPhoto, index: number) => {
+    const expectedUpdatedAt = getContentVersion();
+    if (expectedUpdatedAt === undefined) {
+      setFotoError("No se cargó la versión de la galería. Recargá ADMIN antes de borrar.");
+      return;
+    }
+
     const confirmed = window.confirm("Eliminar esta imagen de la galeria?");
     if (!confirmed) {
       return;
@@ -534,25 +670,40 @@ export function AdminPanel() {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
+            ...photoAuthHeaders(),
           },
-          body: JSON.stringify({ publicId: foto.publicId }),
+          body: JSON.stringify({ publicId: foto.publicId, expectedUpdatedAt }),
         });
 
-        const payload = (await response.json()) as { error?: string };
+        const payload = (await response.json()) as {
+          error?: string;
+          photos?: MotoPhoto[];
+          updatedAt?: string;
+          warning?: string;
+        };
 
-        if (!response.ok) {
+        if (response.status === 409 || response.status === 428) {
+          setSaveConflict(payload.error || "El contenido cambió en otra pestaña. No se borró la imagen.");
+        }
+
+        if (!response.ok || !payload.photos) {
           throw new Error(payload.error || "No se pudo eliminar la imagen.");
         }
 
-        await persistContent({
-          ...content,
-          navItems: navDraft,
-          quienes,
-          events: eventsDraft,
-          novedades: newsDraft,
-          fotos: buildPhotosWithoutIndex(index),
-        });
-        flashMessage(setFotoGuardada, "Imagen eliminada correctamente.");
+        const hasUnsavedDrafts =
+          JSON.stringify(navDraft) !== JSON.stringify(content.navItems) ||
+          quienes !== content.quienes ||
+          JSON.stringify(eventsDraft) !== JSON.stringify(content.events) ||
+          JSON.stringify(newsDraft) !== JSON.stringify(content.novedades);
+        const canAdoptVersion = !saveConflict && !hasUnsavedDrafts && Boolean(payload.updatedAt);
+        saveContent({ ...content, fotos: payload.photos }, canAdoptVersion ? payload.updatedAt : undefined);
+        if (!canAdoptVersion) {
+          setSaveConflict("La galería cambió mientras había ediciones pendientes. No se guardarán otros cambios hasta recargar ADMIN.");
+        }
+        setFotoError(payload.warning || "");
+        if (!payload.warning) {
+          flashMessage(setFotoGuardada, "Imagen eliminada correctamente.");
+        }
         return;
       } catch (error) {
         setFotoError(error instanceof Error ? error.message : "No se pudo eliminar la imagen.");
@@ -655,7 +806,7 @@ export function AdminPanel() {
   };
 
   const handleRemoveSelectedEvent = () => {
-    if (!selectedEvent || eventsDraft.length <= 1) {
+    if (!selectedEvent) {
       return;
     }
 
@@ -667,6 +818,9 @@ export function AdminPanel() {
     const nextEvents = eventsDraft.filter((event) => event.id !== selectedEvent.id);
     setEventsDraft(nextEvents);
     setSelectedEventId(nextEvents[0]?.id ?? "");
+    if (featuredEventDraftId === selectedEvent.id) {
+      setFeaturedEventDraftId(nextEvents.find((event) => event.published !== false)?.id ?? "");
+    }
   };
 
   const handleSaveEvents = async () => {
@@ -712,7 +866,7 @@ export function AdminPanel() {
   };
 
   const handleRemoveSelectedNews = () => {
-    if (!selectedNews || newsDraft.length <= 1) {
+    if (!selectedNews) {
       return;
     }
 
@@ -741,10 +895,9 @@ export function AdminPanel() {
         novedades: normalizedNews,
       });
       setNewsDraft(normalizedNews);
-      await refreshSupabaseContent();
-      flashMessage(setNovedadGuardada, "Novedad guardada y publicada correctamente.");
+      flashMessage(setNovedadGuardada, "Cambios de novedades guardados correctamente.");
       setNewsError("");
-      openSaveModal("La novedad se guardo y publico correctamente.");
+      openSaveModal("Los cambios de novedades se guardaron correctamente.");
     } catch (saveFailure) {
       setNewsError(
         saveFailure instanceof Error ? saveFailure.message : "No se pudieron guardar las novedades."
@@ -787,6 +940,11 @@ export function AdminPanel() {
 
   return (
     <div className="admin-layout">
+      {saveConflict ? (
+        <div className="error" role="alert">
+          {saveConflict} Tus cambios permanecen en este formulario; copialos antes de recargar.
+        </div>
+      ) : null}
       {saveModalMessage ? (
         <div className="admin-modal-backdrop" role="presentation" onClick={() => setSaveModalMessage("")}>
           <div
@@ -816,6 +974,45 @@ export function AdminPanel() {
           Los cambios del admin ahora intentan guardarse en Supabase usando una ruta segura del
           servidor.
         </p>
+      </section>
+
+      <section className="admin-section">
+        <h2 className="section-title admin-title">Configuración <span>general</span></h2>
+        <p className="small">Los campos vacíos conservan el aspecto actual hasta que los completes. Cada ajuste se guarda en site_content.settings.</p>
+        <div className="admin-form-grid">
+          {settingFields.map(({ key, label }) => (
+            <div key={key}>
+              <label htmlFor={`setting-${key}`}>{label}</label>
+              <input id={`setting-${key}`} value={settingsDraft[key] ?? ""} onChange={(event) => setSetting(key, event.target.value)} />
+              {(["logoUrl", "aboutImageUrl", "heroImage", "lodgingImageUrl"] as string[]).includes(key) ? (
+                <input type="file" accept="image/jpeg,image/png,image/webp" aria-label={`Subir ${label}`} onChange={(event) => void handleSettingImageFile(key as "logoUrl" | "aboutImageUrl" | "heroImage" | "lodgingImageUrl", event.target.files?.[0])} />
+              ) : null}
+            </div>
+          ))}
+        </div>
+        {(["contactItems", "socialItems"] as const).map((field) => (
+          <div key={field} className="admin-picker-block">
+            <strong className="admin-picker-title">{field === "contactItems" ? "Teléfonos, correo y WhatsApp" : "Redes sociales"}</strong>
+            {(settingsDraft[field] ?? []).map((item, index) => (
+              <div className="admin-dual-row" key={`${field}-${index}`}>
+                <input aria-label="Etiqueta" value={item.label} onChange={(event) => setSettingsDraft((current) => ({ ...current, [field]: (current[field] ?? []).map((entry, i) => i === index ? { ...entry, label: event.target.value } : entry) }))} />
+                <input aria-label="Valor o enlace" value={item.value} onChange={(event) => setSettingsDraft((current) => ({ ...current, [field]: (current[field] ?? []).map((entry, i) => i === index ? { ...entry, value: event.target.value } : entry) }))} />
+                <button type="button" className="danger-btn" onClick={() => setSettingsDraft((current) => ({ ...current, [field]: (current[field] ?? []).filter((_, i) => i !== index) }))}>Quitar</button>
+              </div>
+            ))}
+            <button type="button" className="ghost-btn" onClick={() => setSettingsDraft((current) => ({ ...current, [field]: [...(current[field] ?? []), { label: "", value: "" }] }))}>Agregar</button>
+          </div>
+        ))}
+        <button type="button" onClick={async () => {
+          try {
+            await persistContent({ ...content, navItems: navDraft, quienes, events: eventsDraft, novedades: newsDraft });
+            flashMessage(setTextoGuardado, "Configuración guardada.");
+          } catch (error) {
+            setLoginError(error instanceof Error ? error.message : "No se pudo guardar la configuración.");
+          }
+        }}>Guardar configuración</button>
+        <div className="success">{textoGuardado}</div>
+        <div className="error">{loginError}</div>
       </section>
 
       <section className="admin-section">
@@ -866,11 +1063,24 @@ export function AdminPanel() {
                 value={item.href}
                 onChange={(event) => updateNavItem(index, "href", event.target.value)}
               />
+              <label>
+                <input
+                  type="checkbox"
+                  checked={item.visible !== false}
+                  onChange={(event) => updateNavItem(index, "visible", event.target.checked)}
+                />
+                Visible
+              </label>
+              <button type="button" className="ghost-btn" onClick={() => moveNavItem(index, -1)} disabled={index === 0} aria-label={`Subir ${item.label}`}>
+                Subir
+              </button>
+              <button type="button" className="ghost-btn" onClick={() => moveNavItem(index, 1)} disabled={index === navDraft.length - 1} aria-label={`Bajar ${item.label}`}>
+                Bajar
+              </button>
               <button
                 type="button"
                 className="danger-btn"
                 onClick={() => handleRemoveNavItem(index)}
-                disabled={navDraft.length <= 1}
               >
                 Quitar
               </button>
@@ -898,12 +1108,24 @@ export function AdminPanel() {
               type="button"
               className="danger-btn"
               onClick={handleRemoveSelectedEvent}
-              disabled={eventsDraft.length <= 1}
+              disabled={!selectedEvent}
             >
               Eliminar evento
             </button>
           </div>
         </div>
+
+        <label htmlFor="featured-event">Evento destacado en portada</label>
+        <select
+          id="featured-event"
+          value={featuredEventDraftId}
+          onChange={(event) => setFeaturedEventDraftId(event.target.value)}
+        >
+          <option value="">Seleccionar automáticamente</option>
+          {eventsDraft.filter((event) => event.published !== false).map((event) => (
+            <option key={event.id} value={event.id}>{event.name}</option>
+          ))}
+        </select>
 
         <div className="admin-event-selector">
           {eventsDraft.map((event) => (
@@ -929,6 +1151,23 @@ export function AdminPanel() {
                   value={selectedEvent.name}
                   onChange={(event) => updateSelectedEventField("name", event.target.value)}
                 />
+              </div>
+              <div>
+                <label htmlFor="event-published">Publicación</label>
+                <select
+                  id="event-published"
+                  value={selectedEvent.published === false ? "hidden" : "published"}
+                  onChange={(event) => {
+                    const published = event.target.value === "published";
+                    updateSelectedEventField("published", published);
+                    if (!published && featuredEventDraftId === selectedEvent.id) {
+                      setFeaturedEventDraftId(eventsDraft.find((item) => item.id !== selectedEvent.id && item.published !== false)?.id ?? "");
+                    }
+                  }}
+                >
+                  <option value="published">Publicado</option>
+                  <option value="hidden">Oculto</option>
+                </select>
               </div>
               <div>
                 <label htmlFor="event-poster-url">Afiche o imagen principal</label>
@@ -1343,7 +1582,13 @@ export function AdminPanel() {
             <div className="success">{eventoGuardado}</div>
             <div className="error">{fotoError}</div>
           </div>
-        ) : null}
+        ) : (
+          <div className="admin-event-form">
+            <p className="small">No hay eventos cargados. Guardá los cambios para confirmar la eliminación.</p>
+            <button type="button" onClick={handleSaveEvents}>Guardar eventos</button>
+            <div className="error">{fotoError}</div>
+          </div>
+        )}
       </section>
 
       <section className="admin-section">
@@ -1359,7 +1604,7 @@ export function AdminPanel() {
               type="button"
               className="danger-btn"
               onClick={handleRemoveSelectedNews}
-              disabled={newsDraft.length <= 1}
+              disabled={!selectedNews}
             >
               Eliminar novedad
             </button>
@@ -1367,7 +1612,7 @@ export function AdminPanel() {
         </div>
         <p className="admin-helper-text">
           Carga una novedad de forma simple: crear, subir foto, escribir la descripcion y guardar.
-          Se publica arriba de todo automaticamente.
+          Elegí si se publica o queda oculta antes de guardar.
         </p>
 
         {selectedNews ? (
@@ -1376,7 +1621,7 @@ export function AdminPanel() {
               <div className="admin-preview-head">
                 <strong className="admin-picker-title">Novedades cargadas</strong>
                 <button type="button" onClick={handleSaveNews}>
-                  Guardar y publicar novedades
+                  Guardar novedades
                 </button>
               </div>
               <div className="admin-news-preview-grid">
@@ -1427,15 +1672,23 @@ export function AdminPanel() {
             <input
               ref={newsFileInputRef}
               type="file"
-              accept="image/*"
+          accept="image/jpeg,image/png,image/webp"
               className="sr-only-input"
               onChange={handleNewsLocalFileChange}
             />
 
             <div className="admin-form-grid">
-              <div className="admin-simple-note">
-                <strong>Titulo y fecha automaticos</strong>
-                <p>Se completan solos con la descripcion y la fecha de carga.</p>
+              <div>
+                <label htmlFor="news-title">Título</label>
+                <input id="news-title" value={selectedNews.title} onChange={(event) => updateSelectedNewsField("title", event.target.value)} />
+              </div>
+              <div>
+                <label htmlFor="news-tag">Etiqueta</label>
+                <input id="news-tag" value={selectedNews.tag} onChange={(event) => updateSelectedNewsField("tag", event.target.value)} />
+              </div>
+              <div>
+                <label htmlFor="news-image-url">URL de imagen</label>
+                <input id="news-image-url" value={selectedNews.imageUrl} onChange={(event) => updateSelectedNewsField("imageUrl", event.target.value)} />
               </div>
             </div>
 
@@ -1463,6 +1716,17 @@ export function AdminPanel() {
                   onChange={(event) => updateSelectedNewsField("imageAlt", event.target.value)}
                 />
               </div>
+              <div>
+                <label htmlFor="news-published">Publicación</label>
+                <select
+                  id="news-published"
+                  value={selectedNews.published === false ? "hidden" : "published"}
+                  onChange={(event) => updateSelectedNewsField("published", event.target.value === "published")}
+                >
+                  <option value="published">Publicada</option>
+                  <option value="hidden">Oculta</option>
+                </select>
+              </div>
             </div>
 
             <label htmlFor="news-description">Descripcion</label>
@@ -1474,12 +1738,18 @@ export function AdminPanel() {
             />
 
             <button type="button" onClick={handleSaveNews}>
-              Guardar y publicar novedades
+              Guardar novedades
             </button>
             <div className="success">{novedadGuardada}</div>
             <div className="error">{newsError}</div>
           </div>
-        ) : null}
+        ) : (
+          <div className="admin-event-form">
+            <p className="small">No hay novedades cargadas. Guardá los cambios para confirmar la eliminación.</p>
+            <button type="button" onClick={handleSaveNews}>Guardar novedades</button>
+            <div className="error">{newsError}</div>
+          </div>
+        )}
       </section>
 
       <section className="admin-section">
@@ -1495,9 +1765,11 @@ export function AdminPanel() {
           >
             Subir desde tu compu
           </button>
-          <button type="button" className="ghost-btn" onClick={handleOpenWebSearch}>
-            Buscar en la web
-          </button>
+          {!cloudinaryEnabled ? (
+            <button type="button" className="ghost-btn" onClick={handleOpenWebSearch}>
+              Buscar en la web
+            </button>
+          ) : null}
           <button type="button" className="ghost-btn" onClick={resetPhotoForm}>
             Limpiar seleccion
           </button>
@@ -1506,34 +1778,43 @@ export function AdminPanel() {
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/png,image/webp"
           className="sr-only-input"
           onChange={handleLocalFileChange}
         />
 
-        <div className="admin-picker-block">
-          <strong className="admin-picker-title">Imagenes internas del sitio</strong>
-          <div className="admin-internal-grid">
-            {internalImageOptions.map((foto) => (
-              <button
-                key={foto.url}
-                type="button"
-                className={`admin-internal-card ${fotoUrl === foto.url ? "is-selected" : ""}`}
-                onClick={() => handleSelectInternal(foto)}
-              >
-                <img src={foto.url} alt={foto.titulo} loading="lazy" />
-                <span>{foto.titulo}</span>
-              </button>
-            ))}
+        {!cloudinaryEnabled ? (
+          <div className="admin-picker-block">
+            <strong className="admin-picker-title">Imagenes internas del sitio</strong>
+            <div className="admin-internal-grid">
+              {internalImageOptions.map((foto) => (
+                <button
+                  key={foto.url}
+                  type="button"
+                  className={`admin-internal-card ${fotoUrl === foto.url ? "is-selected" : ""}`}
+                  onClick={() => handleSelectInternal(foto)}
+                >
+                  <img src={foto.url} alt={foto.titulo} loading="lazy" />
+                  <span>{foto.titulo}</span>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        ) : null}
 
-        <label htmlFor="nueva-foto-url">URL, ruta interna o imagen subida</label>
+        <label htmlFor="nueva-foto-url">
+          {cloudinaryEnabled && editingPhotoIndex === null ? "Archivo seleccionado" : "URL, ruta interna o imagen subida"}
+        </label>
         <input
           id="nueva-foto-url"
           type="text"
-          placeholder="/assets/nueva-imagen.jpg, https://... o archivo local"
+          placeholder={
+            cloudinaryEnabled
+              ? "Seleccioná un archivo JPG, PNG o WebP de hasta 4 MB"
+              : "/assets/nueva-imagen.jpg, https://... o archivo local"
+          }
           value={fotoUrl}
+          readOnly={cloudinaryEnabled && editingPhotoIndex === null}
           onChange={(event) => {
             if (photoPreviewUrlRef.current) {
               URL.revokeObjectURL(photoPreviewUrlRef.current);
@@ -1573,7 +1854,7 @@ export function AdminPanel() {
         ) : null}
 
         <button type="button" onClick={handleAgregarFotoActual} disabled={isUploadingPhoto}>
-          {isUploadingPhoto ? "Subiendo imagen..." : cloudinaryEnabled ? "Subir a Cloudinary" : "Agregar imagen"}
+          {isUploadingPhoto ? "Subiendo imagen..." : editingPhotoIndex !== null ? "Guardar fotografía" : cloudinaryEnabled ? "Subir a Cloudinary" : "Agregar imagen"}
         </button>
 
         <div className="error">{fotoError}</div>
@@ -1586,11 +1867,27 @@ export function AdminPanel() {
                 <img src={foto.url} alt={foto.titulo} loading="lazy" />
                 <strong>{foto.titulo}</strong>
                 <p className="small">{foto.descripcion || ""}</p>
+                <button type="button" className="ghost-btn" onClick={() => {
+                  setEditingPhotoIndex(index);
+                  setSelectedFile(null);
+                  setFotoUrl(foto.url);
+                  setFotoTitulo(foto.titulo);
+                  setFotoDescripcion(foto.descripcion);
+                  setFotoError("");
+                }}>Editar o reemplazar</button>
+                <button type="button" className="ghost-btn" onClick={async () => {
+                  try {
+                    await persistContent({ ...content, navItems: navDraft, quienes, events: eventsDraft, novedades: newsDraft,
+                      fotos: content.fotos.map((item, i) => i === index ? { ...item, published: item.published === false } : item) });
+                    flashMessage(setFotoGuardada, foto.published === false ? "Fotografía publicada." : "Fotografía oculta.");
+                  } catch (error) {
+                    setFotoError(error instanceof Error ? error.message : "No se pudo cambiar la publicación.");
+                  }
+                }}>{foto.published === false ? "Publicar" : "Ocultar"}</button>
                 <button
                   className="danger-btn"
                   type="button"
                   onClick={() => handleEliminarFotoActual(foto, index)}
-                  disabled={cloudinaryEnabled && !foto.publicId}
                 >
                   Eliminar
                 </button>
