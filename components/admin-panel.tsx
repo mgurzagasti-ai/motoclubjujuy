@@ -140,15 +140,18 @@ export function AdminPanel() {
         if (dataUrl.length > 1_500_000) throw new Error("La imagen es demasiado pesada.");
         setSetting(key, dataUrl);
       }
-      setLoginError("");
+      setSettingsError("");
     } catch (error) {
-      setLoginError(error instanceof Error ? error.message : "No se pudo preparar la imagen.");
+      setSettingsError(error instanceof Error ? error.message : "No se pudo preparar la imagen.");
     }
   };
   const [isAdmin, setIsAdmin] = useState(false);
   const [user, setUser] = useState("");
   const [pass, setPass] = useState("");
   const [loginError, setLoginError] = useState("");
+  const [settingsError, setSettingsError] = useState("");
+  const [aboutError, setAboutError] = useState("");
+  const [navError, setNavError] = useState("");
   const [navDraft, setNavDraft] = useState<NavItem[]>(content.navItems);
   const [quienes, setQuienes] = useState(content.quienes);
   const [eventsDraft, setEventsDraft] = useState<ClubEvent[]>(content.events);
@@ -159,7 +162,9 @@ export function AdminPanel() {
   const [fotoUrl, setFotoUrl] = useState("");
   const [fotoTitulo, setFotoTitulo] = useState("");
   const [fotoDescripcion, setFotoDescripcion] = useState("");
-  const [textoGuardado, setTextoGuardado] = useState("");
+  const [settingsSaved, setSettingsSaved] = useState("");
+  const [aboutSaved, setAboutSaved] = useState("");
+  const [navSaved, setNavSaved] = useState("");
   const [fotoGuardada, setFotoGuardada] = useState("");
   const [fotoError, setFotoError] = useState("");
   const [eventoGuardado, setEventoGuardado] = useState("");
@@ -341,6 +346,9 @@ export function AdminPanel() {
       setSelectedEventId(loaded.content.events[0]?.id ?? "");
       setSelectedNewsId(loaded.content.novedades[0]?.id ?? "");
       setLoginError("");
+      setSettingsError("");
+      setAboutError("");
+      setNavError("");
       setSaveConflict("");
     } catch (loginFailure) {
       setLoginError(
@@ -352,10 +360,10 @@ export function AdminPanel() {
   const handleGuardarQuienes = async () => {
     try {
       await persistSection("about", quienes);
-      setLoginError("");
-      flashMessage(setTextoGuardado, "Texto actualizado correctamente.");
+      setAboutError("");
+      flashMessage(setAboutSaved, "Texto actualizado correctamente.");
     } catch (saveFailure) {
-      setLoginError(
+      setAboutError(
         saveFailure instanceof Error ? saveFailure.message : "No se pudo guardar el contenido."
       );
     }
@@ -507,10 +515,10 @@ export function AdminPanel() {
 
       await persistSection("nav", normalizedNavItems.map((item) => ({ ...item, adminManaged: true })));
       setNavDraft(normalizedNavItems);
-      setLoginError("");
-      flashMessage(setTextoGuardado, "Menu actualizado correctamente.");
+      setNavError("");
+      flashMessage(setNavSaved, "Menu actualizado correctamente.");
     } catch (saveFailure) {
-      setLoginError(
+      setNavError(
         saveFailure instanceof Error ? saveFailure.message : "No se pudo guardar el menu."
       );
     }
@@ -924,7 +932,7 @@ export function AdminPanel() {
 
       <section className="admin-section">
         <h2 className="section-title admin-title">Configuración <span>general</span></h2>
-        <p className="small">Los campos vacíos conservan el aspecto actual hasta que los completes. Cada ajuste se guarda en site_content.settings.</p>
+        <p className="small">Podés guardar un solo campo; los demás son opcionales. Si vaciás un campo configurado, su contenido se oculta cuando corresponde.</p>
         <div className="admin-form-grid">
           {settingFields.map(({ key, label }) => (
             <div key={key}>
@@ -955,14 +963,14 @@ export function AdminPanel() {
         <button type="button" onClick={async () => {
           try {
             await persistSection("settings", settingsDraft);
-            setLoginError("");
-            flashMessage(setTextoGuardado, "Configuración guardada.");
+            setSettingsError("");
+            flashMessage(setSettingsSaved, "Configuración guardada.");
           } catch (error) {
-            setLoginError(error instanceof Error ? error.message : "No se pudo guardar la configuración.");
+            setSettingsError(error instanceof Error ? error.message : "No se pudo guardar la configuración.");
           }
         }}>Guardar configuración</button>
-        <div className="success">{textoGuardado}</div>
-        <div className="error">{loginError}</div>
+        <div className="success">{settingsSaved}</div>
+        <div className="error">{settingsError}</div>
       </section>
 
       <section className="admin-section">
@@ -978,8 +986,8 @@ export function AdminPanel() {
         <button type="button" onClick={handleGuardarQuienes}>
           Guardar texto
         </button>
-        <div className="success">{textoGuardado}</div>
-        <div className="error">{loginError}</div>
+        <div className="success">{aboutSaved}</div>
+        <div className="error">{aboutError}</div>
       </section>
 
       <section className="admin-section">
@@ -1040,8 +1048,8 @@ export function AdminPanel() {
           <button type="button" onClick={handleSaveNavItems}>
             Guardar menu
           </button>
-          <div className="success">{textoGuardado}</div>
-          <div className="error">{loginError}</div>
+          <div className="success">{navSaved}</div>
+          <div className="error">{navError}</div>
         </div>
       </section>
 
