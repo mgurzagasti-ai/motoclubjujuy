@@ -12,6 +12,8 @@ import {
   internalImageOptions,
   MotoPhoto,
   NavItem,
+  getEditableNavItems,
+  navbarSavedEvent,
   NewsItem,
   normalizeNavHref,
   sortNewsNewestFirst,
@@ -153,7 +155,8 @@ export function AdminPanel() {
   const [settingsError, setSettingsError] = useState("");
   const [aboutError, setAboutError] = useState("");
   const [navError, setNavError] = useState("");
-  const [navDraft, setNavDraft] = useState<NavItem[]>(content.navItems);
+  const [isSavingNav, setIsSavingNav] = useState(false);
+  const [navDraft, setNavDraft] = useState<NavItem[]>(getEditableNavItems(content.navItems, siteSettings.garageNavVisible));
   const [quienes, setQuienes] = useState(content.quienes);
   const [eventsDraft, setEventsDraft] = useState<ClubEvent[]>(content.events);
   const [newsDraft, setNewsDraft] = useState<NewsItem[]>(content.novedades);
@@ -339,7 +342,7 @@ export function AdminPanel() {
       }
 
       setIsAdmin(true);
-      setNavDraft(loaded.content.navItems);
+      setNavDraft(getEditableNavItems(loaded.content.navItems, loaded.settings.garageNavVisible));
       setQuienes(loaded.content.quienes);
       setEventsDraft(loaded.content.events);
       setFeaturedEventDraftId(loaded.featuredEventId);
@@ -509,20 +512,29 @@ export function AdminPanel() {
   };
 
   const handleSaveNavItems = async () => {
+    if (isSavingNav) return;
+    setIsSavingNav(true);
+    setNavSaved("");
+    setNavError("");
     try {
       const normalizedNavItems = navDraft.map((item, index) => ({
         ...item,
         href: normalizeNavHref(item.href, createDefaultNavItem(index).href),
+        adminManaged: true,
+        garageManaged: true,
       }));
 
-      await persistSection("nav", normalizedNavItems.map((item) => ({ ...item, adminManaged: true })));
+      await persistSection("nav", normalizedNavItems);
       setNavDraft(normalizedNavItems);
+      window.dispatchEvent(new Event(navbarSavedEvent));
       setNavError("");
       flashMessage(setNavSaved, "Menu actualizado correctamente.");
     } catch (saveFailure) {
       setNavError(
-        saveFailure instanceof Error ? saveFailure.message : "No se pudo guardar el menu."
+        saveFailure instanceof Error ? `No se pudo guardar el menú. ${saveFailure.message}` : "No se pudo guardar el menú."
       );
+    } finally {
+      setIsSavingNav(false);
     }
   };
 
@@ -966,8 +978,6 @@ export function AdminPanel() {
             </div>
           ))}
         </div>
-        <label className="admin-checkbox-row"><input type="checkbox" checked={settingsDraft.garageNavVisible !== false}
-          onChange={(event) => setSettingsDraft((current) => ({ ...current, garageNavVisible: event.target.checked }))} /> Mostrar Garage en el menú</label>
         {(["contactItems", "socialItems"] as const).map((field) => (
           <div key={field} className="admin-picker-block">
             <strong className="admin-picker-title">{field === "contactItems" ? "Teléfonos, correo y WhatsApp" : "Redes sociales"}</strong>
@@ -1020,12 +1030,14 @@ export function AdminPanel() {
             Gestionar <span>navbar</span>
           </h2>
           <div className="admin-photo-actions">
-            <button type="button" className="ghost-btn" onClick={handleAddNavItem}>
+            <button type="button" className="ghost-btn" onClick={handleAddNavItem} disabled={isSavingNav}>
               Agregar item
             </button>
           </div>
         </div>
         <p className="admin-helper-text">
+          El orden de esta lista es el orden del menú público. Usá Subir o Bajar y Guardar menú para publicarlo.
+          Garage se administra desde esta misma lista.
           Puedes cambiar el texto y el link de cada opcion del menu. Usa rutas como `/#evento`,
           `/#contacto`, `/admin` o `/mi-nueva-pagina`. Si la ruta no existe todavia, Next mostrara
           el 404.
@@ -1037,43 +1049,47 @@ export function AdminPanel() {
                 type="text"
                 placeholder="Texto del item"
                 value={item.label}
+                disabled={isSavingNav}
                 onChange={(event) => updateNavItem(index, "label", event.target.value)}
               />
               <input
                 type="text"
                 placeholder="/ruta-nueva o /#seccion"
                 value={item.href}
+                disabled={isSavingNav}
                 onChange={(event) => updateNavItem(index, "href", event.target.value)}
               />
               <label>
                 <input
                   type="checkbox"
                   checked={item.visible !== false}
+                  disabled={isSavingNav}
                   onChange={(event) => updateNavItem(index, "visible", event.target.checked)}
                 />
                 Visible
               </label>
-              <button type="button" className="ghost-btn" onClick={() => moveNavItem(index, -1)} disabled={index === 0} aria-label={`Subir ${item.label}`}>
+              <button type="button" className="ghost-btn" onClick={() => moveNavItem(index, -1)} disabled={isSavingNav || index === 0} aria-label={`Subir ${item.label}`}>
                 Subir
               </button>
-              <button type="button" className="ghost-btn" onClick={() => moveNavItem(index, 1)} disabled={index === navDraft.length - 1} aria-label={`Bajar ${item.label}`}>
+              <button type="button" className="ghost-btn" onClick={() => moveNavItem(index, 1)} disabled={isSavingNav || index === navDraft.length - 1} aria-label={`Bajar ${item.label}`}>
                 Bajar
               </button>
               <button
                 type="button"
                 className="danger-btn"
                 onClick={() => handleRemoveNavItem(index)}
+                disabled={isSavingNav}
               >
                 Quitar
               </button>
             </div>
           ))}
 
-          <button type="button" onClick={handleSaveNavItems}>
+          <button type="button" onClick={handleSaveNavItems} disabled={isSavingNav}>
             Guardar menu
           </button>
-          <div className="success">{navSaved}</div>
-          <div className="error">{navError}</div>
+          <div className="success" role="status">{navSaved}</div>
+          <div className="error" role="alert">{navError}</div>
         </div>
       </section>
 

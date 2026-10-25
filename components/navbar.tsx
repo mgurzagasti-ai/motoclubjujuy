@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useMotoclubContent } from "@/lib/use-motoclub-content";
 import { imageUrl } from "@/lib/public-content";
+import { getEditableNavItems, navbarSavedEvent } from "@/lib/site-data";
 
 function getSectionIdFromHref(href: string) {
   const match = href.match(/#(.+)$/);
@@ -16,7 +17,7 @@ function isExternalHref(href: string) {
 }
 
 export function Navbar() {
-  const { content, siteSettings, contentReady } = useMotoclubContent();
+  const { content, siteSettings, contentReady, refreshSupabaseContent } = useMotoclubContent();
   const [activeSection, setActiveSection] = useState("inicio");
   const [failedLogoUrl, setFailedLogoUrl] = useState<string | null>(null);
   const logoUrl = imageUrl(siteSettings.logoUrl === undefined ? "/assets/logo-motoclub-intro.png" : siteSettings.logoUrl);
@@ -24,8 +25,8 @@ export function Navbar() {
   const clubTagline = siteSettings.clubTagline ?? "@motoclubjujuy.oficial";
   const navLinks = useMemo(
     () =>
-      (contentReady ? content.navItems : []).filter((item) => item.visible !== false && item.label.trim() && item.href.trim() &&
-        (item.href !== "/garage" || siteSettings.garageNavVisible !== false)).map((item) => ({
+      (contentReady ? getEditableNavItems(content.navItems, siteSettings.garageNavVisible) : [])
+        .filter((item) => item.visible !== false && item.label.trim() && item.href.trim()).map((item) => ({
         id: item.id,
         href: item.href,
         label: item.label,
@@ -35,6 +36,12 @@ export function Navbar() {
       })),
     [content.navItems, contentReady, siteSettings.garageNavVisible]
   );
+
+  useEffect(() => {
+    const refreshNavbar = () => { void refreshSupabaseContent(); };
+    window.addEventListener(navbarSavedEvent, refreshNavbar);
+    return () => window.removeEventListener(navbarSavedEvent, refreshNavbar);
+  }, [refreshSupabaseContent]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -114,8 +121,6 @@ export function Navbar() {
             <span>{item.label}</span>
           </Link>
         ))}
-        {siteSettings.garageNavVisible !== false && !content.navItems.some((item) => item.href === "/garage")
-          ? <Link href="/garage" className="nav-link">Garage</Link> : null}
       </div>
     </nav>
   );

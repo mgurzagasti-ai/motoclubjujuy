@@ -28,7 +28,31 @@ export type NavItem = {
   label: string;
   visible?: boolean;
   adminManaged?: boolean;
+  garageManaged?: boolean;
 };
+
+export const navbarSavedEvent = "motoclub:navbar-saved";
+
+export function getEditableNavItems(items: NavItem[], legacyGarageVisible = true): NavItem[] {
+  const managed = items.some((item) => item.garageManaged === true);
+  let hasGarage = false;
+  const navItems = items.filter((item) => {
+    const garage = item.id === "nav-garage" || item.href.trim().replace(/\/+$/, "") === "/garage";
+    if (!garage) return true;
+    if (hasGarage) return false;
+    hasGarage = true;
+    return true;
+  }).map((item) => {
+    const garage = item.id === "nav-garage" || item.href.trim().replace(/\/+$/, "") === "/garage";
+    return garage && !managed && !legacyGarageVisible ? { ...item, visible: false } : item;
+  });
+
+  // Adopt the old appended link once. Saved menus and explicit empty lists are authoritative.
+  if (!hasGarage && !managed && items.length > 0) {
+    navItems.push({ id: "nav-garage", href: "/garage", label: "Garage", visible: legacyGarageVisible });
+  }
+  return navItems;
+}
 
 export type NewsItem = {
   id: string;
