@@ -156,7 +156,7 @@ export function AdminPanel() {
   const [aboutError, setAboutError] = useState("");
   const [navError, setNavError] = useState("");
   const [isSavingNav, setIsSavingNav] = useState(false);
-  const [navDraft, setNavDraft] = useState<NavItem[]>(getEditableNavItems(content.navItems, siteSettings.garageNavVisible));
+  const [navDraft, setNavDraft] = useState<NavItem[]>(getEditableNavItems(content.navItems, settingsDraft.garageNavVisible));
   const [quienes, setQuienes] = useState(content.quienes);
   const [eventsDraft, setEventsDraft] = useState<ClubEvent[]>(content.events);
   const [newsDraft, setNewsDraft] = useState<NewsItem[]>(content.novedades);
