@@ -171,6 +171,7 @@ export function AdminPanel() {
   const [eventoGuardado, setEventoGuardado] = useState("");
   const [novedadGuardada, setNovedadGuardada] = useState("");
   const [newsError, setNewsError] = useState("");
+  const [isSavingNews, setIsSavingNews] = useState(false);
   const [saveModalMessage, setSaveModalMessage] = useState("");
   const [saveConflict, setSaveConflict] = useState("");
   const [isUploadingNewsImage, setIsUploadingNewsImage] = useState(false);
@@ -816,8 +817,8 @@ export function AdminPanel() {
     setNewsError("");
   };
 
-  const handleRemoveSelectedNews = () => {
-    if (!selectedNews) {
+  const handleRemoveSelectedNews = async () => {
+    if (!selectedNews || isSavingNews) {
       return;
     }
 
@@ -828,13 +829,30 @@ export function AdminPanel() {
       return;
     }
 
-    const nextNews = newsDraft.filter((item) => item.id !== selectedNews.id);
-    setNewsDraft(nextNews);
-    setSelectedNewsId(nextNews[0]?.id ?? "");
+    const removedId = selectedNews.id;
+    const nextNews = newsDraft.filter((item) => item.id !== removedId);
+    setIsSavingNews(true);
     setNewsError("");
+    setNovedadGuardada("");
+    try {
+      // Delete only this ID from the saved collection, preserving other unsaved drafts.
+      await persistSection("news", content.novedades.filter((item) => item.id !== removedId));
+      setNewsDraft((current) => current.filter((item) => item.id !== removedId));
+      setSelectedNewsId((current) => current === removedId ? nextNews[0]?.id ?? "" : current);
+      flashMessage(setNovedadGuardada, "Novedad eliminada correctamente.");
+      openSaveModal("La novedad se eliminó correctamente.");
+    } catch (saveFailure) {
+      const detail = saveFailure instanceof Error ? saveFailure.message : "Intentá nuevamente.";
+      setNewsError(`No se pudo eliminar la novedad. ${detail}`);
+    } finally {
+      setIsSavingNews(false);
+    }
   };
 
   const saveNews = async (items: NewsItem[]) => {
+    if (isSavingNews) return;
+    setIsSavingNews(true);
+    setNovedadGuardada("");
     try {
       const normalizedNews = buildNewsSnapshot(items);
 
@@ -847,6 +865,8 @@ export function AdminPanel() {
       setNewsError(
         saveFailure instanceof Error ? saveFailure.message : "No se pudieron guardar las novedades."
       );
+    } finally {
+      setIsSavingNews(false);
     }
   };
 
@@ -1559,14 +1579,14 @@ export function AdminPanel() {
             Gestionar <span>novedades</span>
           </h2>
           <div className="admin-photo-actions">
-            <button type="button" className="ghost-btn" onClick={handleAddNews}>
+            <button type="button" className="ghost-btn" onClick={handleAddNews} disabled={isSavingNews}>
               Crear novedad
             </button>
             <button
               type="button"
               className="danger-btn"
               onClick={handleRemoveSelectedNews}
-              disabled={!selectedNews}
+              disabled={!selectedNews || isSavingNews}
             >
               Eliminar novedad
             </button>
@@ -1582,7 +1602,7 @@ export function AdminPanel() {
             <div className="admin-preview-card">
               <div className="admin-preview-head">
                 <strong className="admin-picker-title">Novedades cargadas</strong>
-                <button type="button" onClick={handleSaveNews}>
+                <button type="button" onClick={handleSaveNews} disabled={isSavingNews}>
                   Guardar novedades
                 </button>
               </div>
@@ -1688,7 +1708,7 @@ export function AdminPanel() {
                   <option value="published">Publicada</option>
                   <option value="hidden">Oculta</option>
                 </select>
-                <button type="button" className="ghost-btn" onClick={handleToggleSelectedNews}>
+                <button type="button" className="ghost-btn" onClick={handleToggleSelectedNews} disabled={isSavingNews}>
                   {selectedNews.published === false ? "Publicar novedad" : "Ocultar novedad"}
                 </button>
               </div>
@@ -1702,19 +1722,18 @@ export function AdminPanel() {
               onChange={(event) => updateSelectedNewsField("description", event.target.value)}
             />
 
-            <button type="button" onClick={handleSaveNews}>
+            <button type="button" onClick={handleSaveNews} disabled={isSavingNews}>
               Guardar novedades
             </button>
-            <div className="success">{novedadGuardada}</div>
-            <div className="error">{newsError}</div>
           </div>
         ) : (
           <div className="admin-event-form">
-            <p className="small">No hay novedades cargadas. Guardá los cambios para confirmar la eliminación.</p>
-            <button type="button" onClick={handleSaveNews}>Guardar novedades</button>
-            <div className="error">{newsError}</div>
+            <p className="small">No hay novedades cargadas.</p>
+            <button type="button" onClick={handleSaveNews} disabled={isSavingNews}>Guardar novedades</button>
           </div>
         )}
+        <div className="success" role="status">{novedadGuardada}</div>
+        <div className="error" role="alert">{newsError}</div>
       </section>
 
       <section className="admin-section">
