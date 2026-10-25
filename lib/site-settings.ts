@@ -1,6 +1,7 @@
 import type { InfoItem } from "@/lib/site-data";
 
 export type SiteSettings = {
+  garageNavVisible?: boolean;
   featuredEventId?: string;
   clubName?: string;
   clubTagline?: string;

@@ -87,6 +87,15 @@ test("one General Settings field saves with incomplete legacy events and optiona
   assert.equal(route.state.content.novedades[0].published, false);
 });
 
+test("ADMIN can hide the Garage navbar link without changing other sections", async () => {
+  const route = createRoute();
+  const response = await route.PUT(request("settings", { garageNavVisible: false }));
+  assert.equal(response.status, 200);
+  assert.deepEqual(Object.keys(route.writes[0]), ["settings"]);
+  assert.equal(route.state.settings.garageNavVisible, false);
+  assert.equal(route.state.content.events[0].name, "");
+});
+
 test("incomplete old records do not acquire example content during normalization", () => {
   const content = siteData.normalizeContent({
     navItems: [], quienes: "", fotos: [], events: [{ id: "old", name: "" }],

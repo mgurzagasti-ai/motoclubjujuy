@@ -19,8 +19,9 @@ import {
 import { useMotoclubContent } from "@/lib/use-motoclub-content";
 import type { SiteSettings } from "@/lib/site-settings";
 import type { AdminSection } from "@/lib/admin-section-save";
+import { AdminGarage } from "@/components/admin-garage";
 
-type TextSetting = Exclude<keyof SiteSettings, "contactItems" | "socialItems">;
+type TextSetting = Exclude<keyof SiteSettings, "contactItems" | "socialItems" | "garageNavVisible">;
 const settingFields: { key: TextSetting; label: string }[] = [
   { key: "clubName", label: "Nombre del club" },
   { key: "clubTagline", label: "Lema del club" },
@@ -894,6 +895,7 @@ export function AdminPanel() {
 
   return (
     <div className="admin-layout">
+      <AdminGarage username={user} password={pass} />
       {saveConflict ? (
         <div className="error" role="alert">
           {saveConflict} Tus cambios permanecen en este formulario; copialos antes de recargar.
@@ -944,6 +946,8 @@ export function AdminPanel() {
             </div>
           ))}
         </div>
+        <label className="admin-checkbox-row"><input type="checkbox" checked={settingsDraft.garageNavVisible !== false}
+          onChange={(event) => setSettingsDraft((current) => ({ ...current, garageNavVisible: event.target.checked }))} /> Mostrar Garage en el menú</label>
         {(["contactItems", "socialItems"] as const).map((field) => (
           <div key={field} className="admin-picker-block">
             <strong className="admin-picker-title">{field === "contactItems" ? "Teléfonos, correo y WhatsApp" : "Redes sociales"}</strong>

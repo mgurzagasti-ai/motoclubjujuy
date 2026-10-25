@@ -24,7 +24,8 @@ export function Navbar() {
   const clubTagline = siteSettings.clubTagline ?? "@motoclubjujuy.oficial";
   const navLinks = useMemo(
     () =>
-      (contentReady ? content.navItems : []).filter((item) => item.visible !== false && item.label.trim() && item.href.trim()).map((item) => ({
+      (contentReady ? content.navItems : []).filter((item) => item.visible !== false && item.label.trim() && item.href.trim() &&
+        (item.href !== "/garage" || siteSettings.garageNavVisible !== false)).map((item) => ({
         id: item.id,
         href: item.href,
         label: item.label,
@@ -32,7 +33,7 @@ export function Navbar() {
         isExternal: isExternalHref(item.href),
         accent: item.id === "nav-contacto",
       })),
-    [content.navItems, contentReady]
+    [content.navItems, contentReady, siteSettings.garageNavVisible]
   );
 
   useEffect(() => {
@@ -113,6 +114,8 @@ export function Navbar() {
             <span>{item.label}</span>
           </Link>
         ))}
+        {siteSettings.garageNavVisible !== false && !content.navItems.some((item) => item.href === "/garage")
+          ? <Link href="/garage" className="nav-link">Garage</Link> : null}
       </div>
     </nav>
   );

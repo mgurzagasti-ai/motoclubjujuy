@@ -77,9 +77,15 @@ function prepareSettings(value: unknown, current: SiteContentState): Result {
 
   for (const [key, input] of Object.entries(value)) {
     if (key === "featuredEventId") continue;
-    if (!textSettingKeys.has(key) && key !== "contactItems" && key !== "socialItems")
+    if (!textSettingKeys.has(key) && key !== "contactItems" && key !== "socialItems" && key !== "garageNavVisible")
       return { ok: false, error: `Configuración General: el campo ${key} no existe.` };
     if (JSON.stringify(input) === JSON.stringify(next[key])) continue;
+
+    if (key === "garageNavVisible") {
+      if (typeof input !== "boolean") return { ok: false, error: "Configuración General: garageNavVisible debe ser verdadero o falso." };
+      next[key] = input;
+      continue;
+    }
 
     if (key === "contactItems" || key === "socialItems") {
       if (!Array.isArray(input)) return { ok: false, error: `Configuración General: ${key} debe ser una lista.` };
