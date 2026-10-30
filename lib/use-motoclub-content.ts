@@ -140,10 +140,13 @@ export function useMotoclubContent() {
       if (requestId === refreshSequenceRef.current) {
         if (contentVersionRef.current === undefined) {
           setContent(emptyContent);
-          setFeaturedEventId("");
           setSiteSettings({});
           setContentSource("local");
+        } else {
+          // A failed refresh must not keep showing an event removed or hidden in ADMIN.
+          setContent((current) => ({ ...current, events: [] }));
         }
+        setFeaturedEventId("");
         setContentReady(true);
       }
       return null;

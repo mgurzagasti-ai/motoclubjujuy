@@ -4,15 +4,19 @@ import { resolve } from "node:path";
 import { test } from "node:test";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
+import * as React from "react";
+import * as jsxRuntime from "react/jsx-runtime";
+import { renderToStaticMarkup } from "react-dom/server";
 import * as siteData from "../lib/site-data.ts";
 
-function loadModule(path, dependencies = {}) {
+function loadModule(path, dependencies = {}, globals = {}) {
   const source = readFileSync(resolve(path), "utf8");
   const compiled = ts.transpileModule(source, {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
   }).outputText;
   const sandboxModule = { exports: {} };
   runInNewContext(compiled, {
+    ...globals,
     module: sandboxModule,
     exports: sandboxModule.exports,
     require: (name) => {
@@ -24,8 +28,8 @@ function loadModule(path, dependencies = {}) {
 }
 
 const version = "2026-10-22T12:35:55.716Z";
-const firstEvent = { ...siteData.defaultContent.events[0], id: "event-first" };
-const secondEvent = { ...siteData.defaultContent.events[0], id: "event-second", name: "Segundo" };
+const firstEvent = { ...siteData.createDefaultEvent(), id: "event-first" };
+const secondEvent = { ...siteData.createDefaultEvent(), id: "event-second", name: "Segundo" };
 
 function createRoute() {
   let saved = null;
@@ -47,7 +51,6 @@ function createRoute() {
       toApiSiteContent: () => ({}),
     },
     "@/lib/site-data": siteData,
-    "@/lib/admin-section-save": { prepareAdminSectionChanges: () => { throw new Error("Unexpected section save"); } },
     "@/lib/supabase-admin": { getSupabaseAdmin: () => ({}), validateAdminCredentials: () => true },
     "@/lib/site-content-store": {
       readSiteContentState: async () => ({ ok: true, state: current }),
@@ -129,4 +132,92 @@ test("ADMIN rejects unsafe links in site settings", async () => {
   }));
   assert.equal(response.status, 400);
   assert.equal(route.saved, null);
+});
+
+test("event removal regression: ADMIN deletion and hiding stay absent on the public page", async () => {
+  const publicContent = loadModule("lib/public-content.ts");
+  const event = {
+    ...firstEvent,
+    name: "6TO EVENTO INTERNACIONAL",
+    heroHeadlineHighlight: "6TO EVENTO INTERNACIONAL",
+    badgeDate: "1 al 4 de octubre 2026",
+    highlightItems: [{ label: "Redes del afiche", value: "Redes anteriores" }],
+  };
+  const otherContent = {
+    navItems: [{ id: "club", href: "/#quienes", label: "Club" }],
+    quienes: "<p>Historia existente del club</p>",
+    fotos: [],
+    novedades: [],
+  };
+
+  for (const events of [[], [{ ...event, published: false }]]) {
+    const route = createRoute();
+    const response = await route.PUT(adminRequest({ ...otherContent, events }));
+    assert.equal(response.status, 200);
+    const reloaded = siteData.normalizeContent(JSON.parse(JSON.stringify(route.saved.content)));
+    assert.deepEqual(reloaded.events, events);
+    for (const key of Object.keys(otherContent)) {
+      assert.deepEqual(reloaded[key], otherContent[key]);
+    }
+    const { PublicSections } = loadModule("components/public-sections.tsx", {
+      react: React,
+      "react/jsx-runtime": jsxRuntime,
+      "next/image": { default: ({ src, alt }) => React.createElement("img", { src, alt }) },
+      "@/components/photo-carousel": { PhotoCarousel: () => null },
+      "@/lib/site-data": siteData,
+      "@/lib/public-content": publicContent,
+      "@/lib/supabase": { hasSupabaseConfig: () => true, supabase: {} },
+      "@/lib/use-motoclub-content": {
+        useMotoclubContent: () => ({ content: reloaded, featuredEventId: event.id, siteSettings: {}, contentReady: true }),
+      },
+    });
+    const html = renderToStaticMarkup(React.createElement(PublicSections));
+    assert.doesNotMatch(html, /id="evento"|6TO EVENTO INTERNACIONAL|Redes del afiche|1 al 4 de octubre 2026/);
+    assert.match(html, /Historia existente del club/);
+  }
+
+  assert.deepEqual(siteData.defaultContent.events, []);
+  assert.deepEqual(siteData.normalizeContent(null).events, []);
+  assert.deepEqual(siteData.normalizeContent({ events: null }).events, []);
+  const partial = siteData.normalizeContent({ events: [{ id: "saved", name: "Evento propio" }] }).events[0];
+  assert.equal(partial.name, "Evento propio");
+  assert.equal(partial.badgeDate, "");
+  assert.deepEqual(partial.dayItems, []);
+  assert.deepEqual(partial.highlightItems, []);
+
+  // A failed refresh after an ADMIN change must not keep showing a stale event.
+  const states = [];
+  let unavailable = false;
+  const { useMotoclubContent } = loadModule("lib/use-motoclub-content.ts", {
+    react: {
+      useEffect: () => {},
+      useRef: (current) => ({ current }),
+      useState: (value) => {
+        const state = { value };
+        states.push(state);
+        return [value, (next) => { state.value = typeof next === "function" ? next(state.value) : next; }];
+      },
+    },
+    "@/lib/site-data": siteData,
+    "@/lib/public-content": publicContent,
+    "@/lib/supabase": {
+      hasSupabaseConfig: () => true,
+      supabase: { from: () => ({ select: () => ({ eq: () => ({
+        maybeSingle: async () => unavailable
+          ? { data: null, error: { message: "Network unavailable" } }
+          : { data: { ...otherContent, nav_items: otherContent.navItems, events: [event], updated_at: version }, error: null },
+      }) }) }) },
+    },
+  }, {
+    window: { localStorage: {
+      getItem: () => JSON.stringify({ ...otherContent, events: [event] }),
+      setItem: () => {},
+    } },
+  });
+  const model = useMotoclubContent();
+  await model.refreshSupabaseContent();
+  unavailable = true;
+  await model.refreshSupabaseContent();
+  assert.equal(states[0].value.events.length, 0);
+  assert.equal(states[0].value.quienes, otherContent.quienes);
 });

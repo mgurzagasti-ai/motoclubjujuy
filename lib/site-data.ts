@@ -293,7 +293,7 @@ export function normalizeContent(parsed: Partial<MotoclubContent> | null | undef
     fotos: Array.isArray(parsed?.fotos) ? parsed!.fotos : defaultContent.fotos,
     events: Array.isArray(parsed?.events)
       ? parsed.events.map((event, index) => normalizeEvent(event, index))
-      : defaultContent.events,
+      : [],
     novedades: Array.isArray(parsed?.novedades)
       ? parsed.novedades.map((item, index) => normalizeNewsItem(item, index))
       : defaultContent.novedades,
@@ -313,115 +313,35 @@ export function createDefaultNewsItem(): NewsItem {
   };
 }
 
+// New events and missing fields must never inherit a previously advertised event.
 export function createDefaultEvent(): ClubEvent {
   return {
     id: `event-${Date.now()}`,
-    name: "6 Motoencuentro Internacional",
-    heroEyebrow: "Moto viajeros - Multimarcas",
-    heroHeadlinePrefix: "Rodamos juntos hacia el",
-    heroHeadlineHighlight: "6 Motoencuentro Internacional",
-    heroDescription:
-      "Moto Club Jujuy presenta su nueva imagen y el gran encuentro que recorrerá Jujuy, Quebrada y Yungas. Cuatro días para compartir ruta, amistad y pasión por las dos ruedas.",
-    summaryEyebrow: "Próximo gran encuentro",
-    summaryTitlePrefix: "Nueva fecha,",
-    summaryTitleHighlight: "nueva energía",
-    sectionTitlePrefix: "6 Motoencuentro",
-    sectionTitleHighlight: "Internacional",
-    badgeDate: "1 al 4 de octubre 2026",
-    badgeLocation: "Jujuy - Quebrada - Yungas",
-    dateNumbers: "01 02 03 04",
-    dateMonth: "Octubre 2026",
-    posterUrl: "/assets/evento-motoencuentro.jpeg",
-    posterAlt: "Afiche oficial del 6 Motoencuentro Internacional",
-    metaItems: [
-      {
-        label: "Evento principal",
-        value: "6 Motoencuentro Internacional",
-      },
-      {
-        label: "Recorrido",
-        value: "Jujuy, Quebrada y Yungas",
-      },
-      {
-        label: "Convocatoria",
-        value: "Moto viajeros y multimarcas de Argentina y países vecinos",
-      },
-    ],
-    highlightItems: [
-      {
-        label: "Países invitados",
-        value: "Argentina, Chile, Bolivia, Brasil, Paraguay y Perú",
-      },
-      {
-        label: "Instagram",
-        value: "@motoclubjujuy.oficial",
-      },
-      {
-        label: "Redes del afiche",
-        value: "Facebook: motoclubjujuy | Instagram: motoclubjujuy2015",
-      },
-    ],
-    dayItems: [
-      {
-        day: "Jueves 1",
-        detail: "Recepción, acreditaciones y bienvenida a las delegaciones.",
-      },
-      {
-        day: "Viernes 2",
-        detail: "Primeras salidas, recorridos y actividades de integración.",
-      },
-      {
-        day: "Sábado 3",
-        detail:
-          "Jornada central del encuentro con presencia de motoviajeros y multimarcas.",
-      },
-      {
-        day: "Domingo 4",
-        detail: "Cierre del encuentro y última rodada compartida.",
-      },
-    ],
-    socialItems: [
-      {
-        label: "Instagram oficial",
-        value: "@motoclubjujuy.oficial",
-      },
-      {
-        label: "WhatsApp",
-        value: "+54 9 388 344-3222",
-      },
-      {
-        label: "Facebook",
-        value: "https://www.facebook.com/motoclubjujuy17/?locale=es_LA",
-      },
-      {
-        label: "YouTube",
-        value: "https://www.youtube.com/channel/UCbaji8ytf09nth3uMRES9-w",
-      },
-      {
-        label: "Instagram histórico",
-        value: "motoclubjujuy2015",
-      },
-    ],
-    contactItems: [
-      {
-        label: "Zona del encuentro",
-        value: "Jujuy, Quebrada y Yungas",
-      },
-      {
-        label: "Fecha confirmada",
-        value: "1, 2, 3 y 4 de octubre de 2026",
-      },
-      {
-        label: "Tipo de evento",
-        value: "Internacional - Moto viajeros - Multimarcas",
-      },
-    ],
-    registrationTitle: "Inscripción abierta",
-    registrationDescription:
-      "Reservá tu lugar para el encuentro y recibí la información principal de acreditación, costos y puntos de salida.",
-    registrationHref:
-      "https://docs.google.com/forms/d/e/1FAIpQLScNwaKMnt8IpG-czdKp8dnJjhddk1Rq2uFgEOcUdS37MHvT7A/viewform?pli=1",
-    registrationLabel: "Inscribirme ahora",
+    name: "Nuevo evento",
+    heroEyebrow: "",
+    heroHeadlinePrefix: "",
+    heroHeadlineHighlight: "",
+    heroDescription: "",
+    summaryEyebrow: "",
+    summaryTitlePrefix: "",
+    summaryTitleHighlight: "",
+    sectionTitlePrefix: "",
+    sectionTitleHighlight: "",
+    badgeDate: "",
+    badgeLocation: "",
+    dateNumbers: "",
+    dateMonth: "",
+    posterUrl: "",
+    posterAlt: "",
+    metaItems: [],
+    highlightItems: [],
+    dayItems: [],
+    socialItems: [],
+    contactItems: [],
+    registrationTitle: "",
+    registrationDescription: "",
+    registrationHref: "",
+    registrationLabel: "",
   };
 }
 
@@ -432,6 +352,6 @@ export const defaultContent: MotoclubContent = {
     <p>Durante el año organizamos salidas, encuentros y recorridos por paisajes únicos del norte argentino. Hoy estamos enfocados en el 6 Motoencuentro Internacional, una convocatoria pensada para recibir a motoviajeros de toda la región.</p>
   `,
   fotos: internalImageOptions,
-  events: [createDefaultEvent()],
+  events: [],
   novedades: [createDefaultNewsItem()],
 };

@@ -43,59 +43,7 @@ values (
       "descripcion": "Identidad visual del club."
     }
   ]'::jsonb,
-  '[
-    {
-      "id": "event-main",
-      "name": "6 Motoencuentro Internacional",
-      "heroEyebrow": "Moto viajeros - Multimarcas",
-      "heroHeadlinePrefix": "Rodamos juntos hacia el",
-      "heroHeadlineHighlight": "6 Motoencuentro Internacional",
-      "heroDescription": "Moto Club Jujuy presenta su nueva imagen y el gran encuentro que recorrera Jujuy, Quebrada y Yungas. Cuatro dias para compartir ruta, amistad y pasion por las dos ruedas.",
-      "summaryEyebrow": "Proximo gran encuentro",
-      "summaryTitlePrefix": "Nueva fecha,",
-      "summaryTitleHighlight": "nueva energia",
-      "sectionTitlePrefix": "6 Motoencuentro",
-      "sectionTitleHighlight": "Internacional",
-      "badgeDate": "1 al 4 de octubre 2026",
-      "badgeLocation": "Jujuy - Quebrada - Yungas",
-      "dateNumbers": "01 02 03 04",
-      "dateMonth": "Octubre 2026",
-      "posterUrl": "/assets/evento-motoencuentro.jpeg",
-      "posterAlt": "Afiche oficial del 6 Motoencuentro Internacional",
-      "metaItems": [
-        { "label": "Evento principal", "value": "6 Motoencuentro Internacional" },
-        { "label": "Recorrido", "value": "Jujuy, Quebrada y Yungas" },
-        { "label": "Convocatoria", "value": "Moto viajeros y multimarcas de Argentina y paises vecinos" }
-      ],
-      "highlightItems": [
-        { "label": "Paises invitados", "value": "Argentina, Chile, Bolivia, Brasil, Paraguay y Peru" },
-        { "label": "Instagram", "value": "@motoclubjujuy.oficial" },
-        { "label": "Redes del afiche", "value": "Facebook: motoclubjujuy | Instagram: motoclubjujuy2015" }
-      ],
-      "dayItems": [
-        { "day": "Jueves 1", "detail": "9:30 hs Plaza Belgrano y Casa de Gobierno, 10:30 hs Cabildo y Museo, 12:00 traslado a Ciudad Cultural, 12 a 16 hs acreditaciones y entrega de materiales, 13 hs copetin de bienvenida, 17:30 traslado en combi a AstroTurismo y 20 hs gran evento en Salinas Atardecer y Noche con viaje a los planetas.", "imageUrl": "/assets/evento-dia-1.jpeg", "imageAlt": "Programa del Dia 1 del 6to Motoencuentro con actividad de AstroTurismo" },
-        { "day": "Viernes 2", "detail": "9:00 hs salida de Ciudad Cultural a Monterrico, visita a Bodega El Molle con vino y pastas italianas, recorrido por La Almona, San Antonio, El Carmen y Dique La Cienaga, 13:00 degustacion de comida italiana, 16:00 paseo por Perico y regreso, 18:00 barra en food trucks y 20:30 comida ligera con competencia urbana.", "imageUrl": "/assets/evento-dia-2.jpeg", "imageAlt": "Programa del Dia 2 del 6to Motoencuentro con visita a Bodega El Molle" },
-        { "day": "Sabado 3", "detail": "9 hs salida desde Ciudad Cultural a Maimara, visita a Purmamarca y Los Colorados, almuerzo asado a la estaca en Maimara, 16:30 regreso a San Salvador de Jujuy con food trucks y merienda, 19 hs recorrido por la ciudad y visita a los bares de Plaza Belgrano, 21 hs cena ligera con finales de juegos urbanos.", "imageUrl": "/assets/evento-dia-3.jpeg", "imageAlt": "Programa del Dia 3 del 6to Motoencuentro con recorrido a Maimara" },
-        { "day": "Domingo 4", "detail": "Cierre del 6 Motoencuentro Internacional con encuentro final entre delegaciones, resumen del programa 2026 y ultima rodada compartida antes de la despedida.", "imageUrl": "/assets/evento-programa-general.jpeg", "imageAlt": "Placa general del programa 2026 del 6 Motoencuentro Internacional" }
-      ],
-      "socialItems": [
-        { "label": "Instagram oficial", "value": "@motoclubjujuy.oficial" },
-        { "label": "WhatsApp", "value": "+54 9 388 344-3222" },
-        { "label": "Facebook", "value": "https://www.facebook.com/motoclubjujuy17/?locale=es_LA" },
-        { "label": "YouTube", "value": "https://www.youtube.com/channel/UCbaji8ytf09nth3uMRES9-w" },
-        { "label": "Instagram historico", "value": "motoclubjujuy2015" }
-      ],
-      "contactItems": [
-        { "label": "Zona del encuentro", "value": "Jujuy, Quebrada y Yungas" },
-        { "label": "Fecha confirmada", "value": "1, 2, 3 y 4 de octubre de 2026" },
-        { "label": "Tipo de evento", "value": "Internacional - Moto viajeros - Multimarcas" }
-      ],
-      "registrationTitle": "Inscripcion abierta",
-      "registrationDescription": "Reserva tu lugar para el encuentro y recibi la informacion principal de acreditacion, costos y puntos de salida.",
-      "registrationHref": "https://docs.google.com/forms/d/e/1FAIpQLScNwaKMnt8IpG-czdKp8dnJjhddk1Rq2uFgEOcUdS37MHvT7A/viewform?pli=1",
-      "registrationLabel": "Inscribirme ahora"
-    }
-  ]'::jsonb,
+  '[]'::jsonb,
   '[
     {
       "id": "news-main",
@@ -110,54 +58,14 @@ values (
   '{
     "heroTitle": "Moto Club Jujuy",
     "heroSubtitle": "Comunidad, ruta y encuentros",
-    "heroImage": "/assets/evento-motoencuentro.jpeg",
+    "heroImage": "",
     "contactText": "Escribinos para sumarte al club o conocer proximos eventos.",
-    "featuredEventId": "event-main"
+    "featuredEventId": ""
   }'::jsonb
 )
 on conflict (slug) do nothing;
 
-update public.site_content
-set events = jsonb_set(
-  events,
-  '{0,dayItems}',
-  '[
-    { "day": "Jueves 1", "detail": "9:30 hs Plaza Belgrano y Casa de Gobierno, 10:30 hs Cabildo y Museo, 12:00 traslado a Ciudad Cultural, 12 a 16 hs acreditaciones y entrega de materiales, 13 hs copetin de bienvenida, 17:30 traslado en combi a AstroTurismo y 20 hs gran evento en Salinas Atardecer y Noche con viaje a los planetas.", "imageUrl": "/assets/evento-dia-1.jpeg", "imageAlt": "Programa del Dia 1 del 6to Motoencuentro con actividad de AstroTurismo" },
-    { "day": "Viernes 2", "detail": "9:00 hs salida de Ciudad Cultural a Monterrico, visita a Bodega El Molle con vino y pastas italianas, recorrido por La Almona, San Antonio, El Carmen y Dique La Cienaga, 13:00 degustacion de comida italiana, 16:00 paseo por Perico y regreso, 18:00 barra en food trucks y 20:30 comida ligera con competencia urbana.", "imageUrl": "/assets/evento-dia-2.jpeg", "imageAlt": "Programa del Dia 2 del 6to Motoencuentro con visita a Bodega El Molle" },
-    { "day": "Sabado 3", "detail": "9 hs salida desde Ciudad Cultural a Maimara, visita a Purmamarca y Los Colorados, almuerzo asado a la estaca en Maimara, 16:30 regreso a San Salvador de Jujuy con food trucks y merienda, 19 hs recorrido por la ciudad y visita a los bares de Plaza Belgrano, 21 hs cena ligera con finales de juegos urbanos.", "imageUrl": "/assets/evento-dia-3.jpeg", "imageAlt": "Programa del Dia 3 del 6to Motoencuentro con recorrido a Maimara" },
-    { "day": "Domingo 4", "detail": "Cierre del 6 Motoencuentro Internacional con encuentro final entre delegaciones, resumen del programa 2026 y ultima rodada compartida antes de la despedida.", "imageUrl": "/assets/evento-programa-general.jpeg", "imageAlt": "Placa general del programa 2026 del 6 Motoencuentro Internacional" }
-  ]'::jsonb
-)
-where slug = 'main'
-  and jsonb_typeof(events) = 'array'
-  and jsonb_array_length(events) > 0;
-
-update public.site_content
-set events = jsonb_set(
-  events,
-  '{0,registrationHref}',
-  '"https://docs.google.com/forms/d/e/1FAIpQLScNwaKMnt8IpG-czdKp8dnJjhddk1Rq2uFgEOcUdS37MHvT7A/viewform?pli=1"'::jsonb
-)
-where slug = 'main'
-  and jsonb_typeof(events) = 'array'
-  and jsonb_array_length(events) > 0;
-
-update public.site_content
-set events = jsonb_set(
-  events,
-  '{0,socialItems}',
-  '[
-    { "label": "Instagram oficial", "value": "@motoclubjujuy.oficial" },
-    { "label": "WhatsApp", "value": "+54 9 388 344-3222" },
-    { "label": "Facebook", "value": "https://www.facebook.com/motoclubjujuy17/?locale=es_LA" },
-    { "label": "YouTube", "value": "https://www.youtube.com/channel/UCbaji8ytf09nth3uMRES9-w" },
-    { "label": "Instagram historico", "value": "motoclubjujuy2015" }
-  ]'::jsonb
-)
-where slug = 'main'
-  and jsonb_typeof(events) = 'array'
-  and jsonb_array_length(events) > 0;
-
+-- Events are managed only through ADMIN/API. Never seed or overwrite them here.
 update public.site_content
 set nav_items = nav_items || '[{ "id": "nav-alojamientos", "href": "/alojamientos-sugeridos", "label": "Alojamientos sugeridos" }]'::jsonb
 where slug = 'main'
