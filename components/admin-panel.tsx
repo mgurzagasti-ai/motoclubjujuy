@@ -787,14 +787,17 @@ export function AdminPanel() {
     const nextEvents = eventsDraft.filter((event) => event.id !== selectedEvent.id);
     setEventsDraft(nextEvents);
     setSelectedEventId(nextEvents[0]?.id ?? "");
-    if (featuredEventDraftId === selectedEvent.id) {
+    if (!nextEvents.length || featuredEventDraftId === selectedEvent.id) {
       setFeaturedEventDraftId(nextEvents.find((event) => event.published !== false)?.id ?? "");
     }
   };
 
   const handleSaveEvents = async () => {
     try {
-      await persistSection("events", { events: eventsDraft, featuredEventId: featuredEventDraftId });
+      await persistSection("events", {
+        events: eventsDraft,
+        featuredEventId: eventsDraft.length ? featuredEventDraftId : "",
+      });
       setFotoError("");
       flashMessage(setEventoGuardado, "Eventos actualizados correctamente.");
       openSaveModal("El evento se guardo correctamente.");

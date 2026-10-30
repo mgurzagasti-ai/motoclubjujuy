@@ -136,7 +136,7 @@ export function prepareAdminSectionChanges(section: unknown, value: unknown, cur
     if (error) return { ok: false, error };
     const events = value.events as ClubEvent[];
     const visible = publishedEvents(events);
-    const requestedId = value.featuredEventId.trim();
+    const requestedId = events.length ? value.featuredEventId.trim() : "";
     if (requestedId && !visible.some((event) => event.id === requestedId))
       return { ok: false, error: "Eventos: el destacado debe tener nombre y estar publicado." };
     const featuredEventId = requestedId || visible[0]?.id || "";
